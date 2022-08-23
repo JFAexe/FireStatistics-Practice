@@ -2,21 +2,23 @@ package main
 
 import (
 	"io"
+	"math/rand"
 
 	ch "github.com/go-echarts/go-echarts/v2/charts"
 	cm "github.com/go-echarts/go-echarts/v2/components"
 	op "github.com/go-echarts/go-echarts/v2/opts"
+	tp "github.com/go-echarts/go-echarts/v2/types"
 )
 
 func MakePage() *cm.Page {
-	return cm.NewPage()
+	return cm.NewPage().SetLayout(cm.PageFlexLayout)
 }
 
 func RenderPage(p *cm.Page, path, name string) {
 	p.Render(io.MultiWriter(CreateFile(path, name)))
 }
 
-func ConverDataBar[T any](d []T) []op.BarData {
+func ConverDataBar(d []int) []op.BarData {
 	items := make([]op.BarData, 0)
 
 	for _, v := range d {
@@ -26,7 +28,7 @@ func ConverDataBar[T any](d []T) []op.BarData {
 	return items
 }
 
-func ConverDataPie[T any](n []string, d []T) []op.PieData {
+func ConverDataPie(n []string, d []int) []op.PieData {
 	items := make([]op.PieData, 0)
 
 	for i, v := range d {
@@ -36,7 +38,7 @@ func ConverDataPie[T any](n []string, d []T) []op.PieData {
 	return items
 }
 
-func BarChart[T any](title string, axis []string, values ...[]T) *ch.Bar {
+func BarChart(title string, axis []string, values ...[]int) *ch.Bar {
 	bar := ch.NewBar()
 
 	bar.SetGlobalOptions(DefaultOptions(title)...)
@@ -50,7 +52,7 @@ func BarChart[T any](title string, axis []string, values ...[]T) *ch.Bar {
 	return bar
 }
 
-func BarChartNestedValues[T any](title string, axis, names []string, values ...[][]T) *ch.Bar {
+func BarChartNestedValues(title string, axis, names []string, values ...[][]int) *ch.Bar {
 	bar := ch.NewBar()
 
 	bar.SetGlobalOptions(DefaultOptions(title)...)
@@ -66,7 +68,7 @@ func BarChartNestedValues[T any](title string, axis, names []string, values ...[
 	return bar
 }
 
-func PieChart[T any](title string, axis []string, values []T) *ch.Pie {
+func PieChart(title string, axis []string, values []int) *ch.Pie {
 	pie := ch.NewPie()
 
 	pie.SetGlobalOptions(DefaultOptions(title)...)
@@ -80,8 +82,39 @@ func PieChart[T any](title string, axis []string, values []T) *ch.Pie {
 
 func DefaultOptions(title string) []ch.GlobalOpts {
 	return []ch.GlobalOpts{
-		ch.WithTitleOpts(op.Title{Title: title}),
-		ch.WithInitializationOpts(op.Initialization{Width: "960px", Height: "320px"}),
+		ch.WithTitleOpts(op.Title{Title: title, Left: "center"}),
+		ch.WithInitializationOpts(op.Initialization{Width: "45vw", Height: "40vh"}),
 		ch.WithTooltipOpts(op.Tooltip{Show: true}),
 	}
+}
+
+func geoData(d [][][]float64) []op.GeoData {
+	points := make([]op.GeoData, 0)
+
+	c := 0
+
+	for _, v := range d {
+
+		for _, p := range v {
+			if c > 50 {
+				break
+			}
+			points = append(points, op.GeoData{Value: []float64{p[0], p[1], float64(rand.Intn(100))}})
+			c++
+		}
+	}
+
+	return points
+}
+
+func geoBase(p [][][]float64) *ch.Geo {
+	geo := ch.NewGeo()
+	geo.SetGlobalOptions(
+		ch.WithInitializationOpts(op.Initialization{Width: "90vw", Height: "70vh"}),
+		ch.WithGeoComponentOpts(op.GeoComponent{Map: "Russia"}),
+	)
+
+	geo.AddSeries("geo", tp.ChartEffectScatter, geoData(p))
+
+	return geo
 }

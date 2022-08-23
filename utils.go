@@ -55,6 +55,12 @@ func CreateFile(path, name string) *os.File {
 	return f
 }
 
+func GetFileNameFromPath(path string) string {
+	_, f := filepath.Split(path)
+
+	return strings.TrimSuffix(f, filepath.Ext(f))
+}
+
 func Map[T, U any](s []T, f func(T) U) []U {
 	r := make([]U, len(s))
 
@@ -83,12 +89,6 @@ func RemoveDuplicates(s []string) []string {
 	return s[:prv]
 }
 
-func GetFileNameFromPath(path string) string {
-	_, f := filepath.Split(path)
-
-	return strings.TrimSuffix(f, filepath.Ext(f))
-}
-
 func ParseDate(i []string) time.Time {
 	d, err := time.Parse(timeformat, strings.Join(i, ""))
 	if err != nil {
@@ -107,6 +107,21 @@ func ParseNumber(i string) int {
 	return n
 }
 
+func ParseFloatArray(i []string) []float64 {
+	ret := make([]float64, 0)
+
+	for _, v := range i {
+		f, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			ErrorLogger.Panicf("Can't parse float. Error: %v\n", err)
+		}
+
+		ret = append(ret, f)
+	}
+
+	return ret
+}
+
 func LogMemoryUsage() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
@@ -116,5 +131,5 @@ func LogMemoryUsage() {
 }
 
 func bToMb(b uint64) uint64 {
-	return b / 1024 / 1024
+	return b / 1048576
 }

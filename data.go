@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 
 	df "github.com/go-gota/gota/dataframe"
@@ -55,42 +56,42 @@ func FilterEq(n, v string) df.F {
 	return df.F{Colname: n, Comparator: sr.Eq, Comparando: v}
 }
 
-func CountFilteredData(f df.DataFrame, r []string, c string) ([]any, []any) {
-	d := []any{}
-	p := []any{}
+func CountFilteredData(f df.DataFrame, r []string, c string) ([]int, [][][]float64) {
+	d := make([]int, 0)
+	p := make([][][]float64, 0)
 
 	for _, v := range r {
 		ff := f.Filter(FilterEq(c, v))
 
 		d = append(d, ff.Nrow())
-		p = append(p, ff.Select([]string{"lon", "lat"}).Records()[1:])
+		p = append(p, Map(ff.Select([]string{"lon", "lat"}).Records()[1:], func(i []string) []float64 { return ParseFloatArray(i) }))
 	}
 
 	return d, p
 }
 
-func DoubleFilteredData(f df.DataFrame, r1, r2 []string, c1, c2 string) ([][]any, [][]any) {
-	d := [][]any{}
-	c := [][]any{}
+func DoubleFilteredData(f df.DataFrame, r1, r2 []string, c1, c2 string) ([][]int, [][][][]float64) {
+	d := make([][]int, 0)
+	p := make([][][][]float64, 0)
 
 	for _, v1 := range r1 {
 		tf := f.Filter(FilterEq(c1, v1))
 
-		td := []any{}
-		tc := []any{}
+		td := make([]int, 0)
+		tp := make([][][]float64, 0)
 
 		for _, v2 := range r2 {
 			tff := tf.Filter(FilterEq(c2, v2))
 
 			td = append(td, tff.Nrow())
-			tc = append(tc, tff.Select([]string{"lon", "lat"}).Records()[1:])
+			tp = append(tp, Map(tff.Select([]string{"lon", "lat"}).Records()[1:], func(i []string) []float64 { return ParseFloatArray(i) }))
 		}
 
 		d = append(d, td)
-		c = append(c, tc)
+		p = append(p, tp)
 	}
 
-	return d, c
+	return d, p
 }
 
 func GetMonthData(f df.DataFrame) []string {
@@ -108,6 +109,8 @@ func ProcessData(path string) {
 
 	years := GetUniqueRecords(frame, "year")
 
+	span := strings.Join([]string{years[0], "-", years[len(years)-1]}, "")
+
 	months := GetMonthData(frame)
 	months_names := make([]string, 0)
 	for _, m := range months {
@@ -124,8 +127,6 @@ func ProcessData(path string) {
 	InfoLogger.Println(months, months_names)
 	InfoLogger.Println(types, types_names)
 
-	title := strings.Join([]string{"Распределение за ", years[0], "-", years[len(years)-1]}, "")
-
 	count_years_total, _ := CountFilteredData(frame, years, "year")
 	count_total, _ := DoubleFilteredData(frame, months, years, "month", "year")
 	count_years, _ := DoubleFilteredData(frame, years, months, "year", "month")
@@ -137,15 +138,16 @@ func ProcessData(path string) {
 	out := MakePage()
 
 	out.AddCharts(
-		BarChart("count_total_years", years, count_years_total),
-		PieChart("types_total_percentage", types_names, types_count_total),
-		BarChartNestedValues(title, years, months_names, count_total),
-		BarChartNestedValues(title, years, types_names, types_total),
+		geoBase([][][]float64{}),
+		BarChart(strings.Join([]string{"Число за", span, "(", strconv.Itoa(count), ")"}, " "), years, count_years_total),
+		PieChart(strings.Join([]string{"Отношение за", span}, " "), types_names, types_count_total),
+		BarChartNestedValues(strings.Join([]string{"Распределение за", span}, " "), years, months_names, count_total),
+		BarChartNestedValues(strings.Join([]string{"Распределение за", span}, " "), years, types_names, types_total),
 	)
 	for i := 0; i < len(count_years); i++ {
 		out.AddCharts(
-			BarChart(strings.Join([]string{"count_", years[i]}, ""), months_names, count_years[i]),
-			PieChart(strings.Join([]string{"types_", years[i]}, ""), types_names, types_years[i]),
+			BarChart(strings.Join([]string{"Число за", years[i]}, " "), months_names, count_years[i]),
+			PieChart(strings.Join([]string{"Отношение за", years[i]}, " "), types_names, types_years[i]),
 		)
 	}
 
