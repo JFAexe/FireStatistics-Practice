@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -44,11 +43,11 @@ func IsValidFile(path string) (bool, error) {
 }
 
 func CreateFile(path, name string) *os.File {
-	if err := os.MkdirAll(strings.Join([]string{temppath, path}, "/"), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Join(temppath, path, "/"), 0700); err != nil {
 		ErrorLogger.Panicf("Can't create directory. Error: %s\n", err)
 	}
 
-	file, err := os.Create(strings.Join([]string{temppath, path, name}, "/"))
+	file, err := os.Create(filepath.Join(temppath, path, name, "/"))
 	if err != nil {
 		ErrorLogger.Panicf("Can't create file. Error: %s\n", err)
 	}
@@ -72,32 +71,27 @@ func Map[T, U any](slice []T, fn func(T) U) []U {
 	return ret
 }
 
-func RemoveDuplicateStrings(slice []string) []string {
-	if len(slice) < 1 {
-		return slice
-	}
+func RemoveDuplicateValues[T comparable](s []T) []T {
+	keys := make(map[T]bool)
+	list := make([]T, 0)
 
-	sort.Strings(slice)
-
-	prev := 1
-
-	for curr := 1; curr < len(slice); curr++ {
-		if slice[curr-1] != slice[curr] {
-			slice[prev] = slice[curr]
-			prev++
+	for _, entry := range s {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
 		}
 	}
 
-	return slice[:prev]
+	return list
 }
 
 func Approx(t, a, b float64) bool {
 	return math.Abs(a-b) <= t
 }
 
-func PointInSlice(r float64, p []float64, s Points) bool {
+func PointInSlice(r float64, p Point, s Points) bool {
 	for _, c := range s {
-		if Approx(r, p[0], c[0]) && Approx(r, p[1], c[1]) {
+		if Approx(r, p.x, c.x) && Approx(r, p.y, c.y) {
 			return true
 		}
 	}
@@ -107,7 +101,7 @@ func PointInSlice(r float64, p []float64, s Points) bool {
 
 func FilterPoints(r float64, p Points) Points {
 	sort.Slice(p, func(i, j int) bool {
-		return (p[i][0] > p[j][0]) && (p[i][1] > p[j][1])
+		return (p[i].x > p[j].x) && (p[i].y > p[j].y)
 	})
 
 	temp := make(Points, 0)
@@ -124,7 +118,7 @@ func FilterPoints(r float64, p Points) Points {
 }
 
 func ParseDate(in []string) time.Time {
-	ret, err := time.Parse(timeformat, strings.Join(in, ""))
+	ret, err := time.Parse(timeformat, in[0])
 	if err != nil {
 		ErrorLogger.Panicf("Can't parse date. Error: %s\n", err)
 	}
@@ -132,13 +126,16 @@ func ParseDate(in []string) time.Time {
 	return ret
 }
 
-func ParseNumber(in string) int {
-	ret, err := strconv.Atoi(in)
-	if err != nil {
-		ErrorLogger.Panicf("Can't parse number. Error: %s\n", err)
-	}
+func DateYear(in []string) int {
+	return ParseDate(in).Year()
+}
 
-	return ret
+func DateMonth(in []string) int {
+	return int(ParseDate(in).Month())
+}
+
+func DateDay(in []string) int {
+	return ParseDate(in).Day()
 }
 
 func LogMemoryUsage() {

@@ -56,14 +56,14 @@ func ConverDataPie(names []string, data []int) []op.PieData {
 	return ret
 }
 
-func ConverDataGeo(names []string, data []ArrangedPoints) [][]op.GeoData {
+func ConverDataGeo(data []PointsMap) [][]op.GeoData {
 	ret := make([][]op.GeoData, 0)
 
 	for _, arrange := range data {
-		for id, points := range arrange {
+		for name, points := range arrange {
 			ret2 := make([]op.GeoData, 0)
 			for _, point := range FilterPoints(2, points) {
-				ret2 = append(ret2, op.GeoData{Name: names[id], Value: []any{point[0], point[1], "count"}})
+				ret2 = append(ret2, op.GeoData{Name: name, Value: []any{point.x, point.y}})
 			}
 			ret = append(ret, ret2)
 		}
@@ -110,7 +110,7 @@ func PieChart(title string, axis []string, values []int) *ch.Pie {
 	return chart
 }
 
-func GeoChart(names []string, data []ArrangedPoints) *ch.Geo {
+func GeoChart(data []PointsMap) *ch.Geo {
 	chart := ch.NewGeo()
 
 	chart.SetGlobalOptions(
@@ -120,7 +120,7 @@ func GeoChart(names []string, data []ArrangedPoints) *ch.Geo {
 		WithRenderer(NewSnippetRenderer(chart, chart.Validate)),
 	)
 
-	for _, series := range ConverDataGeo(names, data) {
+	for _, series := range ConverDataGeo(data) {
 		chart.AddSeries("", tp.ChartScatter, series)
 	}
 
