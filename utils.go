@@ -44,12 +44,12 @@ func IsValidFile(path string) (bool, error) {
 
 func CreateFile(path, name string) *os.File {
 	if err := os.MkdirAll(strings.Join([]string{temppath, path}, "/"), 0700); err != nil {
-		ErrorLogger.Panicf("Can't create directory. Error: %v\n", err)
+		ErrorLogger.Panicf("Can't create directory. Error: %s\n", err)
 	}
 
 	file, err := os.Create(strings.Join([]string{temppath, path, name}, "/"))
 	if err != nil {
-		ErrorLogger.Panicf("Can't create file. Error: %v\n", err)
+		ErrorLogger.Panicf("Can't create file. Error: %s\n", err)
 	}
 
 	return file
@@ -92,7 +92,7 @@ func RemoveDuplicates(slice []string) []string {
 func ParseDate(in []string) time.Time {
 	ret, err := time.Parse(timeformat, strings.Join(in, ""))
 	if err != nil {
-		ErrorLogger.Panicf("Can't parse date. Error: %v\n", err)
+		ErrorLogger.Panicf("Can't parse date. Error: %s\n", err)
 	}
 
 	return ret
@@ -101,7 +101,7 @@ func ParseDate(in []string) time.Time {
 func ParseNumber(in string) int {
 	ret, err := strconv.Atoi(in)
 	if err != nil {
-		ErrorLogger.Panicf("Can't parse number. Error: %v\n", err)
+		ErrorLogger.Panicf("Can't parse number. Error: %s\n", err)
 	}
 
 	return ret
@@ -113,7 +113,7 @@ func ParseFloatArray(in []string) []float64 {
 	for _, val := range in {
 		float, err := strconv.ParseFloat(val, 64)
 		if err != nil {
-			ErrorLogger.Panicf("Can't parse float. Error: %v\n", err)
+			ErrorLogger.Panicf("Can't parse float. Error: %s\n", err)
 		}
 
 		ret = append(ret, float)

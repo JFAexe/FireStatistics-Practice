@@ -20,16 +20,16 @@ func main() {
 	for _, arg := range args {
 		exists, err := IsValidFile(arg)
 		if err != nil {
-			ErrorLogger.Printf("Something is wrong with the file \"%v\". Error: %v\n", arg, err)
+			ErrorLogger.Printf("Something is wrong with the file \"%s\". Error: %s\n", arg, err)
 		}
 
 		if !exists {
-			InfoLogger.Printf("\"%v\" isn't a file or doesn't exist\n", arg)
+			InfoLogger.Printf("\"%s\" isn't a file or doesn't exist\n", arg)
 
 			continue
 		}
 
-		InfoLogger.Printf("Current file: %v (%v)\n", GetFileNameFromPath(arg), arg)
+		InfoLogger.Printf("Current file: %s (%s)\n", GetFileNameFromPath(arg), arg)
 
 		ProcessData(arg)
 

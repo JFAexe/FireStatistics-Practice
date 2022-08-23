@@ -6,8 +6,15 @@ import (
 	ch "github.com/go-echarts/go-echarts/v2/charts"
 	cm "github.com/go-echarts/go-echarts/v2/components"
 	op "github.com/go-echarts/go-echarts/v2/opts"
+	rn "github.com/go-echarts/go-echarts/v2/render"
 	tp "github.com/go-echarts/go-echarts/v2/types"
 )
+
+func WithRenderer(opt rn.Renderer) ch.GlobalOpts {
+	return func(bc *ch.BaseConfiguration) {
+		bc.Renderer = opt
+	}
+}
 
 func MakePage() *cm.Page {
 	return cm.NewPage().SetLayout(cm.PageFlexLayout)
@@ -17,11 +24,12 @@ func RenderPage(page *cm.Page, path, name string) {
 	page.Render(io.MultiWriter(CreateFile(path, name)))
 }
 
-func DefaultOptions(title string) []ch.GlobalOpts {
+func DefaultOptions(title string, renderer rn.Renderer) []ch.GlobalOpts {
 	return []ch.GlobalOpts{
 		ch.WithTitleOpts(op.Title{Title: title, Left: "center"}),
 		ch.WithInitializationOpts(op.Initialization{Width: "45vw", Height: "40vh"}),
 		ch.WithTooltipOpts(op.Tooltip{Show: true}),
+		WithRenderer(renderer),
 	}
 }
 
@@ -46,7 +54,7 @@ func ConverDataPie(names []string, data []int) []op.PieData {
 }
 
 func ConverDataGeo(data []ArrangedPoints) []op.GeoData {
-	ret := make([]op.GeoData, 1024)
+	ret := make([]op.GeoData, 0)
 
 	count := 0
 
@@ -56,7 +64,7 @@ func ConverDataGeo(data []ArrangedPoints) []op.GeoData {
 				if count > 1023 {
 					break
 				}
-				ret[count] = op.GeoData{Value: point}
+				ret = append(ret, op.GeoData{Value: point})
 				count++
 			}
 		}
@@ -66,52 +74,53 @@ func ConverDataGeo(data []ArrangedPoints) []op.GeoData {
 }
 
 func BarChart(title string, axis []string, values []int) *ch.Bar {
-	bar := ch.NewBar()
+	chart := ch.NewBar()
 
-	bar.SetGlobalOptions(DefaultOptions(title)...)
+	chart.SetGlobalOptions(DefaultOptions(title, NewSnippetRenderer(chart, chart.Validate))...)
 
-	bar.AddSeries("", ConverDataBar(values))
+	chart.AddSeries("", ConverDataBar(values))
 
-	bar.SetXAxis(axis).SetSeriesOptions(ch.WithLabelOpts(op.Label{Show: true, Position: "top"}))
+	chart.SetXAxis(axis).SetSeriesOptions(ch.WithLabelOpts(op.Label{Show: true, Position: "top"}))
 
-	return bar
+	return chart
 }
 
 func BarChartNestedValues(title string, axis, names []string, values [][]int) *ch.Bar {
-	bar := ch.NewBar()
+	chart := ch.NewBar()
 
-	bar.SetGlobalOptions(DefaultOptions(title)...)
+	chart.SetGlobalOptions(DefaultOptions(title, NewSnippetRenderer(chart, chart.Validate))...)
 
 	for id, val := range values {
-		bar.AddSeries(names[id], ConverDataBar(val))
+		chart.AddSeries(names[id], ConverDataBar(val))
 	}
 
-	bar.SetXAxis(axis)
+	chart.SetXAxis(axis)
 
-	return bar
+	return chart
 }
 
 func PieChart(title string, axis []string, values []int) *ch.Pie {
-	pie := ch.NewPie()
+	chart := ch.NewPie()
 
-	pie.SetGlobalOptions(DefaultOptions(title)...)
+	chart.SetGlobalOptions(DefaultOptions(title, NewSnippetRenderer(chart, chart.Validate))...)
 
-	pie.AddSeries("", ConverDataPie(axis, values))
+	chart.AddSeries("", ConverDataPie(axis, values))
 
-	pie.SetSeriesOptions(ch.WithPieChartOpts(op.PieChart{Radius: []string{"25%", "55%"}}))
+	chart.SetSeriesOptions(ch.WithPieChartOpts(op.PieChart{Radius: []string{"25%", "55%"}}))
 
-	return pie
+	return chart
 }
 
 func GeoChart(data []ArrangedPoints) *ch.Geo {
-	geo := ch.NewGeo()
+	chart := ch.NewGeo()
 
-	geo.SetGlobalOptions(
+	chart.SetGlobalOptions(
 		ch.WithInitializationOpts(op.Initialization{Width: "90vw", Height: "70vh"}),
 		ch.WithGeoComponentOpts(op.GeoComponent{Map: "Russia"}),
+		WithRenderer(NewSnippetRenderer(chart, chart.Validate)),
 	)
 
-	geo.AddSeries("", tp.ChartEffectScatter, ConverDataGeo(data))
+	chart.AddSeries("", tp.ChartEffectScatter, ConverDataGeo(data))
 
-	return geo
+	return chart
 }

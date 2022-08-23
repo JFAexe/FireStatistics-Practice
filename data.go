@@ -74,10 +74,10 @@ func CountFilteredData(frame df.DataFrame, r []string, c string) ([]int, []Arran
 	points := make([]Points, 0)
 
 	for _, v := range r {
-		ff := frame.Filter(FilterEq(c, v))
+		f := frame.Filter(FilterEq(c, v))
 
-		data = append(data, ff.Nrow())
-		points = append(points, Map(ff.Select(coordinates).Records()[1:], func(i []string) Point { return ParseFloatArray(i) }))
+		data = append(data, f.Nrow())
+		points = append(points, Map(f.Select(coordinates).Records()[1:], func(in []string) Point { return ParseFloatArray(in) }))
 	}
 
 	return data, []ArrangedPoints{points}
@@ -88,20 +88,20 @@ func DoubleFilteredData(frame df.DataFrame, r1, r2 []string, c1, c2 string) ([][
 	points := make([]ArrangedPoints, 0)
 
 	for _, v1 := range r1 {
-		tf := frame.Filter(FilterEq(c1, v1))
+		f := frame.Filter(FilterEq(c1, v1))
 
-		td := make([]int, 0)
-		tp := make([]Points, 0)
+		d := make([]int, 0)
+		p := make([]Points, 0)
 
 		for _, v2 := range r2 {
-			tff := tf.Filter(FilterEq(c2, v2))
+			ff := f.Filter(FilterEq(c2, v2))
 
-			td = append(td, tff.Nrow())
-			tp = append(tp, Map(tff.Select(coordinates).Records()[1:], func(i []string) Point { return ParseFloatArray(i) }))
+			d = append(d, ff.Nrow())
+			p = append(p, Map(ff.Select(coordinates).Records()[1:], func(in []string) Point { return ParseFloatArray(in) }))
 		}
 
-		data = append(data, td)
-		points = append(points, tp)
+		data = append(data, d)
+		points = append(points, p)
 	}
 
 	return data, points
@@ -136,7 +136,7 @@ func ProcessData(path string) {
 		types_names = append(types_names, frame.Filter(FilterEq("type", t)).Col("name").Records()[0])
 	}
 
-	InfoLogger.Println(years, count)
+	InfoLogger.Println(years, "Всего:", count)
 	InfoLogger.Println(months, months_names)
 	InfoLogger.Println(types, types_names)
 
@@ -164,5 +164,5 @@ func ProcessData(path string) {
 		)
 	}
 
-	RenderPage(out, GetFileNameFromPath(path), "out.html")
+	RenderPage(out, GetFileNameFromPath(path), "page.html")
 }
