@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -32,7 +33,7 @@ func SetupLogger() {
 func IsValidFile(path string) (bool, error) {
 	info, err := os.Stat(path)
 	if err == nil {
-		return !info.IsDir(), nil
+		return !info.IsDir() && filepath.Ext(path) == ".csv", nil
 	}
 
 	if os.IsNotExist(err) {
@@ -71,7 +72,7 @@ func Map[T, U any](slice []T, fn func(T) U) []U {
 	return ret
 }
 
-func RemoveDuplicates(slice []string) []string {
+func RemoveDuplicateStrings(slice []string) []string {
 	if len(slice) < 1 {
 		return slice
 	}
@@ -79,6 +80,7 @@ func RemoveDuplicates(slice []string) []string {
 	sort.Strings(slice)
 
 	prev := 1
+
 	for curr := 1; curr < len(slice); curr++ {
 		if slice[curr-1] != slice[curr] {
 			slice[prev] = slice[curr]
@@ -87,6 +89,38 @@ func RemoveDuplicates(slice []string) []string {
 	}
 
 	return slice[:prev]
+}
+
+func Approx(t, a, b float64) bool {
+	return math.Abs(a-b) <= t
+}
+
+func PointInSlice(r float64, p []float64, s Points) bool {
+	for _, c := range s {
+		if Approx(r, p[0], c[0]) && Approx(r, p[1], c[1]) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func FilterPoints(r float64, p Points) Points {
+	sort.Slice(p, func(i, j int) bool {
+		return (p[i][0] > p[j][0]) && (p[i][1] > p[j][1])
+	})
+
+	temp := make(Points, 0)
+
+	for _, point := range p {
+		if PointInSlice(r, point, temp) {
+			continue
+		}
+
+		temp = append(temp, point)
+	}
+
+	return temp
 }
 
 func ParseDate(in []string) time.Time {
@@ -102,21 +136,6 @@ func ParseNumber(in string) int {
 	ret, err := strconv.Atoi(in)
 	if err != nil {
 		ErrorLogger.Panicf("Can't parse number. Error: %s\n", err)
-	}
-
-	return ret
-}
-
-func ParseFloatArray(in []string) []float64 {
-	ret := make([]float64, 0)
-
-	for _, val := range in {
-		float, err := strconv.ParseFloat(val, 64)
-		if err != nil {
-			ErrorLogger.Panicf("Can't parse float. Error: %s\n", err)
-		}
-
-		ret = append(ret, float)
 	}
 
 	return ret

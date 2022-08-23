@@ -17,24 +17,19 @@ type (
 )
 
 var (
-	coordinates = []string{
-		"lon",
-		"lat",
-	}
-
-	humanmonths = []string{
-		"Январь",
-		"Февраль",
-		"Март",
-		"Апрель",
-		"Май",
-		"Июнь",
-		"Июль",
-		"Август",
-		"Сентябрь",
-		"Октябрь",
-		"Ноябрь",
-		"Декабрь",
+	humanmonths = map[string]string{
+		"1":  "Январь",
+		"2":  "Февраль",
+		"3":  "Март",
+		"4":  "Апрель",
+		"5":  "Май",
+		"6":  "Июнь",
+		"7":  "Июль",
+		"8":  "Август",
+		"9":  "Сентябрь",
+		"10": "Октябрь",
+		"11": "Ноябрь",
+		"12": "Декабрь",
 	}
 )
 
@@ -62,14 +57,27 @@ func PrepareDataFrame(frame df.DataFrame) df.DataFrame {
 }
 
 func GetUniqueRecords(frame df.DataFrame, name string) []string {
-	return RemoveDuplicates(frame.Col(name).Records())
+	return RemoveDuplicateStrings(frame.Col(name).Records())
 }
 
 func FilterEq(name, value string) df.F {
 	return df.F{Colname: name, Comparator: sr.Eq, Comparando: value}
 }
 
-func CountFilteredData(frame df.DataFrame, r []string, c string) ([]int, []ArrangedPoints) {
+func GetPoints(frame df.DataFrame) Points {
+	ret := make(Points, 0)
+
+	lon := frame.Col("lon").Float()
+	lat := frame.Col("lat").Float()
+
+	for id := 0; id < len(lon); id++ {
+		ret = append(ret, Point{lon[id], lat[id]})
+	}
+
+	return ret
+}
+
+func SingleFilterPass(frame df.DataFrame, r []string, c string) ([]int, []ArrangedPoints) {
 	data := make([]int, 0)
 	points := make([]Points, 0)
 
@@ -77,13 +85,13 @@ func CountFilteredData(frame df.DataFrame, r []string, c string) ([]int, []Arran
 		f := frame.Filter(FilterEq(c, v))
 
 		data = append(data, f.Nrow())
-		points = append(points, Map(f.Select(coordinates).Records()[1:], func(in []string) Point { return ParseFloatArray(in) }))
+		points = append(points, GetPoints(f))
 	}
 
 	return data, []ArrangedPoints{points}
 }
 
-func DoubleFilteredData(frame df.DataFrame, r1, r2 []string, c1, c2 string) ([][]int, []ArrangedPoints) {
+func DoubleFilterPass(frame df.DataFrame, r1, r2 []string, c1, c2 string) ([][]int, []ArrangedPoints) {
 	data := make([][]int, 0)
 	points := make([]ArrangedPoints, 0)
 
@@ -97,7 +105,7 @@ func DoubleFilteredData(frame df.DataFrame, r1, r2 []string, c1, c2 string) ([][
 			ff := f.Filter(FilterEq(c2, v2))
 
 			d = append(d, ff.Nrow())
-			p = append(p, Map(ff.Select(coordinates).Records()[1:], func(in []string) Point { return ParseFloatArray(in) }))
+			p = append(p, GetPoints(ff))
 		}
 
 		data = append(data, d)
@@ -127,7 +135,7 @@ func ProcessData(path string) {
 	months := GetMonthData(frame)
 	months_names := make([]string, 0)
 	for _, m := range months {
-		months_names = append(months_names, humanmonths[ParseNumber(m)-1])
+		months_names = append(months_names, humanmonths[m])
 	}
 
 	types := GetUniqueRecords(frame, "type")
@@ -140,18 +148,16 @@ func ProcessData(path string) {
 	InfoLogger.Println(months, months_names)
 	InfoLogger.Println(types, types_names)
 
-	count_years_total, points1 := CountFilteredData(frame, years, "year")
-	count_total, _ := DoubleFilteredData(frame, months, years, "month", "year")
-	count_years, _ := DoubleFilteredData(frame, years, months, "year", "month")
+	count_years_total, points1 := SingleFilterPass(frame, years, "year")
+	count_total, _ := DoubleFilterPass(frame, months, years, "month", "year")
+	count_years, _ := DoubleFilterPass(frame, years, months, "year", "month")
 
-	types_count_total, _ := CountFilteredData(frame, types, "type")
-	types_total, _ := DoubleFilteredData(frame, types, years, "type", "year")
-	types_years, _ := DoubleFilteredData(frame, years, types, "year", "type")
+	types_count_total, _ := SingleFilterPass(frame, types, "type")
+	types_total, _ := DoubleFilterPass(frame, types, years, "type", "year")
+	types_years, _ := DoubleFilterPass(frame, years, types, "year", "type")
 
-	out := MakePage()
-
-	out.AddCharts(
-		GeoChart(points1),
+	out := MakePage(
+		GeoChart(years, points1),
 		BarChart(strings.Join([]string{"Число за", span, "(", strconv.Itoa(count), ")"}, " "), years, count_years_total),
 		PieChart(strings.Join([]string{"Отношение за", span}, " "), types_names, types_count_total),
 		BarChartNestedValues(strings.Join([]string{"Распределение за", span}, " "), years, months_names, count_total),

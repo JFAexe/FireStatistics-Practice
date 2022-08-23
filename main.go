@@ -1,6 +1,9 @@
 package main
 
-import "os"
+import (
+	"os"
+	"time"
+)
 
 func init() {
 	SetupLogger()
@@ -17,6 +20,8 @@ func main() {
 		InfoLogger.Printf("Inputs count: %v", count)
 	}
 
+	s := time.Now()
+
 	for _, arg := range args {
 		exists, err := IsValidFile(arg)
 		if err != nil {
@@ -24,7 +29,7 @@ func main() {
 		}
 
 		if !exists {
-			InfoLogger.Printf("\"%s\" isn't a file or doesn't exist\n", arg)
+			InfoLogger.Printf("\"%s\" isn't a csv file or doesn't exist\n", arg)
 
 			continue
 		}
@@ -35,4 +40,6 @@ func main() {
 
 		LogMemoryUsage()
 	}
+
+	InfoLogger.Println("Main", time.Since(s))
 }

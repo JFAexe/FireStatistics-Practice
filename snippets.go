@@ -5,14 +5,11 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-
-	rn "github.com/go-echarts/go-echarts/v2/render"
 )
 
 const (
 	tplname    string = "chartsnippet"
 	tplsnippet string = `
-<script src="../../../web/echarts.min.js"></script>
 <div class="container">
     <div class="item" id="{{ .ChartID }}" style="width:{{ .Initialization.Width }};height:{{ .Initialization.Height }};"></div>
 </div>
@@ -27,12 +24,18 @@ const (
 `
 )
 
-type SnippetRenderer struct {
-	c      interface{}
-	before []func()
-}
+type (
+	Renderer interface {
+		Render(w io.Writer) error
+	}
 
-func NewSnippetRenderer(c interface{}, before ...func()) rn.Renderer {
+	SnippetRenderer struct {
+		c      interface{}
+		before []func()
+	}
+)
+
+func NewSnippetRenderer(c interface{}, before ...func()) Renderer {
 	return &SnippetRenderer{c: c, before: before}
 }
 
@@ -41,18 +44,18 @@ func (r *SnippetRenderer) Render(w io.Writer) error {
 		fn()
 	}
 
-	tpl := template.Must(
-		template.New(tplname).
-			Funcs(template.FuncMap{"safeJS": func(s interface{}) template.JS { return template.JS(fmt.Sprint(s)) }}).
-			Parse(tplsnippet),
+	tpl := template.Must(template.
+		New(tplname).
+		Funcs(template.FuncMap{"safeJS": func(s interface{}) template.JS {
+			return template.JS(fmt.Sprint(s))
+		}}).
+		Parse(tplsnippet),
 	)
 
-	err := tpl.ExecuteTemplate(w, tplname, r.c)
-
-	return err
+	return tpl.ExecuteTemplate(w, tplname, r.c)
 }
 
-func ChartToSnippet(r rn.Renderer) string {
+func ChartToSnippet(r Renderer) string {
 	var buf bytes.Buffer
 
 	r.Render(&buf)
