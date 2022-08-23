@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	temppath   string = "./fa-temp"
+	temppath   string = "./temp"
 	timeformat string = "2006-01-02"
 )
 
@@ -24,22 +24,11 @@ var (
 )
 
 func SetupLogger() {
-	var out *os.File
+	out := os.Stdout
+	flags := log.LstdFlags | log.Lmsgprefix
 
-	if err := os.MkdirAll(temppath, 0700); err != nil {
-		log.Printf("Can't create temp folder. Error: %v\n", err)
-	}
-
-	f, err := os.OpenFile("./fa-temp/fa-logs.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		log.Printf("Switching logs output to stdout. Error: %v\n", err)
-		out = os.Stdout
-	} else {
-		out = f
-	}
-
-	InfoLogger = log.New(out, "[INFO] ", log.LstdFlags|log.Lmsgprefix)
-	ErrorLogger = log.New(out, "[ERROR] ", log.LstdFlags|log.Lmsgprefix)
+	InfoLogger = log.New(out, "[INFO] ", flags)
+	ErrorLogger = log.New(out, "[ERROR] ", flags)
 }
 
 func IsValidFile(path string) (bool, error) {
@@ -63,6 +52,8 @@ func WriteFileFromBytes(path, name string, buf []byte) error {
 	if err := ioutil.WriteFile(filepath.Join(path, name), buf, 0600); err != nil {
 		return err
 	}
+
+	InfoLogger.Printf("Saved file \"%v\" at %v", name, path)
 
 	return nil
 }
@@ -103,15 +94,15 @@ func RemoveDuplicates(s []string) []string {
 
 	sort.Strings(s)
 
-	p := 1
+	prv := 1
 	for cur := 1; cur < len(s); cur++ {
 		if s[cur-1] != s[cur] {
-			s[p] = s[cur]
-			p++
+			s[prv] = s[cur]
+			prv++
 		}
 	}
 
-	return s[:p]
+	return s[:prv]
 }
 
 func GetFileNameFromPath(path string) string {

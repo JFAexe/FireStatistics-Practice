@@ -1,11 +1,38 @@
 package main
 
 import (
-	"strconv"
 	"strings"
 
 	ch "github.com/vicanso/go-charts/v2"
 )
+
+const (
+	maxwidth  int = 1280
+	defwidth  int = 940
+	minwidth  int = 640
+	defheight int = 360
+)
+
+var (
+	basepadding   ch.Box = ch.Box{Top: 32, Right: 32, Bottom: 32, Left: 32}
+	legendpadding ch.Box = ch.Box{Top: 56, Right: 0, Bottom: 0, Left: 0}
+)
+
+func TitleOptions(t string) ch.TitleOption {
+	return ch.TitleOption{Text: t, Left: ch.PositionCenter, FontSize: 24}
+}
+
+func LegendOptions(d []string) ch.LegendOption {
+	return ch.LegendOption{Data: d, Left: ch.PositionCenter, Padding: legendpadding, FontSize: 10}
+}
+
+func PieRadius(r string) ch.OptionFunc { // rekt
+	return func(opt *ch.ChartOption) {
+		for index := range opt.SeriesList {
+			opt.SeriesList[index].Radius = r
+		}
+	}
+}
 
 func GetDataFromRender(c *ch.Painter) []byte {
 	data, err := c.Bytes()
@@ -24,141 +51,41 @@ func WriteChartFile(path, name string, data []byte) {
 	}
 }
 
-func MakeYearsTotalCountChart(path string, values []float64, axis []string, count int) {
-	render, err := ch.BarRender(
-		[][]float64{values},
-		ch.TitleOptionFunc(ch.TitleOption{
-			Text:            "Количество пожаров за год",
-			Subtext:         strings.Join([]string{"Общее число:", strconv.Itoa(count)}, " "),
-			Left:            ch.PositionCenter,
-			FontSize:        24,
-			SubtextFontSize: 16,
-		}),
-		ch.XAxisDataOptionFunc(axis),
-		ch.WidthOptionFunc(60*len(axis)),
-		ch.HeightOptionFunc(320),
-		ch.PaddingOptionFunc(ch.Box{
-			Top:    20,
-			Right:  20,
-			Bottom: 20,
-			Left:   20,
-		}),
-		ch.SVGTypeOption(),
-	)
-	if err != nil {
-		ErrorLogger.Panic(err)
-	}
-
-	WriteChartFile(path, "count_years_total.svg", GetDataFromRender(render))
-}
-
-func MakeMonthsTotalCountChart(path string, values [][]float64, axis, legend []string) {
+func GenerateBarChart(path string, name []string, values [][]float64, axis, legend, title []string, width int) {
 	render, err := ch.BarRender(
 		values,
-		ch.TitleOptionFunc(ch.TitleOption{
-			Text:     "Месяц",
-			Left:     ch.PositionCenter,
-			FontSize: 24,
-		}),
+		ch.TitleOptionFunc(TitleOptions(strings.Join(title, ""))),
 		ch.XAxisDataOptionFunc(axis),
-		ch.LegendOptionFunc(ch.LegendOption{
-			Data:   legend,
-			Orient: ch.OrientHorizontal,
-			Left:   ch.PositionCenter,
-			Padding: ch.Box{
-				Top:    48,
-				Right:  0,
-				Bottom: 0,
-				Left:   0,
-			},
-		}),
-		ch.WidthOptionFunc(140*len(axis)),
-		ch.HeightOptionFunc(320),
-		ch.PaddingOptionFunc(ch.Box{
-			Top:    20,
-			Right:  20,
-			Bottom: 20,
-			Left:   20,
-		}),
+		ch.LegendOptionFunc(LegendOptions(legend)),
+		ch.WidthOptionFunc(width),
+		ch.HeightOptionFunc(defheight),
+		ch.PaddingOptionFunc(basepadding),
 		ch.SVGTypeOption(),
 	)
 	if err != nil {
 		ErrorLogger.Panic(err)
 	}
 
-	WriteChartFile(path, "count_months_total.svg", GetDataFromRender(render))
+	WriteChartFile(path, strings.Join(name, ""), GetDataFromRender(render))
 }
 
-func MakeYearMonthsCountChart(path, year string, values [][]float64, axis, legend []string) {
-	render, err := ch.BarRender(
+func GeneratePieChart(path string, name []string, values []float64, legend []string, width int) {
+	render, err := ch.PieRender(
 		values,
-		ch.TitleOptionFunc(ch.TitleOption{
-			Text:     year,
-			Left:     ch.PositionCenter,
-			FontSize: 24,
-		}),
-		ch.XAxisDataOptionFunc(axis),
 		ch.LegendOptionFunc(ch.LegendOption{
-			Data:   legend,
-			Orient: ch.OrientHorizontal,
-			Left:   ch.PositionCenter,
-			Padding: ch.Box{
-				Top:    48,
-				Right:  0,
-				Bottom: 0,
-				Left:   0,
-			},
+			Data: legend,
+			Show: ch.FalseFlag(),
 		}),
-		ch.WidthOptionFunc(60*len(axis)),
-		ch.HeightOptionFunc(320),
-		ch.PaddingOptionFunc(ch.Box{
-			Top:    20,
-			Right:  20,
-			Bottom: 20,
-			Left:   20,
-		}),
+		PieRadius("35%"),
+		ch.PieSeriesShowLabel(),
+		ch.WidthOptionFunc(width),
+		ch.HeightOptionFunc(defheight),
+		ch.PaddingOptionFunc(basepadding),
 		ch.SVGTypeOption(),
 	)
 	if err != nil {
 		ErrorLogger.Panic(err)
 	}
 
-	WriteChartFile(path, strings.Join([]string{"count_", year, ".svg"}, ""), GetDataFromRender(render))
-}
-
-func MakeTypesTotalCountChart(path string, values [][]float64, axis, legend []string) {
-	render, err := ch.BarRender(
-		values,
-		ch.TitleOptionFunc(ch.TitleOption{
-			Text:     "Типы",
-			Left:     ch.PositionCenter,
-			FontSize: 24,
-		}),
-		ch.XAxisDataOptionFunc(axis),
-		ch.LegendOptionFunc(ch.LegendOption{
-			Data:   legend,
-			Orient: ch.OrientHorizontal,
-			Left:   ch.PositionCenter,
-			Padding: ch.Box{
-				Top:    48,
-				Right:  0,
-				Bottom: 0,
-				Left:   0,
-			},
-		}),
-		ch.WidthOptionFunc(110*len(axis)),
-		ch.HeightOptionFunc(320),
-		ch.PaddingOptionFunc(ch.Box{
-			Top:    20,
-			Right:  20,
-			Bottom: 20,
-			Left:   20,
-		}),
-		ch.SVGTypeOption(),
-	)
-	if err != nil {
-		ErrorLogger.Panic(err)
-	}
-
-	WriteChartFile(path, "types_total.svg", GetDataFromRender(render))
+	WriteChartFile(path, strings.Join(name, ""), GetDataFromRender(render))
 }

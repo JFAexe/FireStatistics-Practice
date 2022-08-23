@@ -54,6 +54,15 @@ func FilterEq(n, v string) df.F {
 	return df.F{Colname: n, Comparator: sr.Eq, Comparando: v}
 }
 
+func CountFilteredData(f df.DataFrame, r []string, c string) []float64 {
+	data := []float64{}
+	for _, v := range r {
+		data = append(data, float64(f.Filter(FilterEq(c, v)).Nrow()))
+	}
+
+	return data
+}
+
 func DoubleFilteredData(f df.DataFrame, r1, r2 []string, c1, c2 string) [][]float64 {
 	data := [][]float64{}
 	for _, v1 := range r1 {
@@ -80,12 +89,15 @@ func ProcessData(path string) {
 	frame := PrepareDataFrame(ReadDataFile(path))
 
 	count := frame.Nrow()
+
 	years := GetUniqueRecords(frame, "year")
+
 	months := GetMonthData(frame)
 	months_names := []string{}
 	for _, m := range months {
 		months_names = append(months_names, humanmonths[ParseNumber(m)-1])
 	}
+
 	types := GetUniqueRecords(frame, "type")
 	types_names := []string{}
 	for _, t := range types {
@@ -96,19 +108,27 @@ func ProcessData(path string) {
 	InfoLogger.Println(months, months_names)
 	InfoLogger.Println(types, types_names)
 
-	counts_total := []float64{}
-	for _, y := range years {
-		counts_total = append(counts_total, float64(frame.Filter(FilterEq("year", y)).Nrow()))
+	title := []string{"Распределение за ", years[0], "-", years[len(years)-1]}
+
+	count_years_total := CountFilteredData(frame, years, "year")
+	count_total := DoubleFilteredData(frame, months, years, "month", "year")
+	count_years := DoubleFilteredData(frame, years, months, "year", "month")
+
+	GenerateBarChart(path, []string{"count_total_years.svg"}, [][]float64{count_years_total}, years, nil, []string{"Количество в год"}, minwidth)
+	GenerateBarChart(path, []string{"count_total_span.svg"}, count_total, years, months_names, title, maxwidth)
+	for i, y := range count_years {
+		GenerateBarChart(path, []string{"count_", years[i], ".svg"}, [][]float64{y}, months_names, nil, []string{years[i]}, minwidth)
 	}
 
+	types_count_total := CountFilteredData(frame, types, "type")
 	types_total := DoubleFilteredData(frame, types, years, "type", "year")
-	months_total := DoubleFilteredData(frame, months, years, "month", "year")
-	years_counts := DoubleFilteredData(frame, years, months, "year", "month")
+	types_years := DoubleFilteredData(frame, years, types, "year", "type")
 
-	MakeYearsTotalCountChart(path, counts_total, years, count)
-	MakeTypesTotalCountChart(path, types_total, years, types_names)
-	MakeMonthsTotalCountChart(path, months_total, years, months_names)
-	for i, y := range years_counts {
-		MakeYearMonthsCountChart(path, years[i], [][]float64{y}, months_names, nil)
+	GeneratePieChart(path, []string{"types_total_percentage.svg"}, types_count_total, types_names, minwidth)
+	GenerateBarChart(path, []string{"types_total_span.svg"}, types_total, years, types_names, title, defwidth)
+	for i, y := range types_years {
+		GeneratePieChart(path, []string{"types_", years[i], ".svg"}, y, types_names, minwidth)
 	}
+
+	GenerateBar(PrepareDataForCharts(count_years_total), years)
 }

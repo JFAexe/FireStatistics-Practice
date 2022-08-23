@@ -3,6 +3,7 @@ module FireStatisticsProject
 go 1.19
 
 require (
+	github.com/go-echarts/go-echarts/v2 v2.2.4
 	github.com/go-gota/gota v0.12.0
 	github.com/vicanso/go-charts/v2 v2.1.0
 )

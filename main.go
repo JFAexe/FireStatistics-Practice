@@ -14,7 +14,7 @@ func main() {
 	argscount := len(args)
 
 	if argscount < 1 {
-		InfoLogger.Println("No files provided")
+		InfoLogger.Println("No inputs provided")
 
 		return
 	}
