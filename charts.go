@@ -14,9 +14,8 @@ import (
 )
 
 type (
-	Renderer interface {
-		Render(w io.Writer) error
-	}
+	Charter  interface{ Validate() }
+	Renderer interface{ Render(w io.Writer) error }
 
 	SnippetRenderer struct {
 		c      interface{}
@@ -49,9 +48,7 @@ func (r *SnippetRenderer) Render(w io.Writer) error {
 	}
 
 	tplfuncs := template.FuncMap{
-		"safeJS": func(s interface{}) template.JS {
-			return template.JS(fmt.Sprint(s))
-		},
+		"safeJS": func(s interface{}) template.JS { return template.JS(fmt.Sprint(s)) },
 	}
 
 	tpl := template.Must(template.New("chartsnippet").Funcs(tplfuncs).Parse(HTMLSnippet))
@@ -77,7 +74,7 @@ func ToSnippet(r Renderer) template.HTML {
 	return template.HTML(buf.String())
 }
 
-func WithSnippetRenderer(chart interface{ Validate() }) ch.GlobalOpts {
+func WithSnippetRenderer(chart Charter) ch.GlobalOpts {
 	return func(bc *ch.BaseConfiguration) {
 		bc.Renderer = &SnippetRenderer{c: chart, before: []func(){chart.Validate}}
 	}
@@ -87,20 +84,43 @@ func WithScatterSize(opt float32) ch.SeriesOpts {
 	return func(s *ch.SingleSeries) { s.SymbolSize = opt }
 }
 
-func GetChartOptions(title string, chart interface{ Validate() }) []ch.GlobalOpts {
+func GetChartOptions(title string, chart Charter) []ch.GlobalOpts {
 	return []ch.GlobalOpts{
-		ch.WithTitleOpts(op.Title{Title: title, Left: "center", TitleStyle: &op.TextStyle{FontFamily: "'Exo 2', sans-serif"}}),
-		ch.WithInitializationOpts(op.Initialization{Width: "1080px", Height: "400px"}),
-		ch.WithTooltipOpts(op.Tooltip{Show: true}),
-		ch.WithLegendOpts(op.Legend{Show: true, Bottom: "bottom", Left: "center"}),
+		ch.WithTitleOpts(op.Title{
+			Title: title,
+			Left:  "center",
+			TitleStyle: &op.TextStyle{
+				FontFamily: "'Exo 2', sans-serif",
+			},
+		}),
+		ch.WithInitializationOpts(op.Initialization{
+			Width:  "1080px",
+			Height: "400px",
+		}),
+		ch.WithTooltipOpts(op.Tooltip{
+			Show: true,
+		}),
+		ch.WithLegendOpts(op.Legend{
+			Show:   true,
+			Bottom: "bottom",
+			Left:   "center",
+		}),
 		ch.WithToolboxOpts(op.Toolbox{
 			Show:   true,
 			Right:  "5%",
 			Top:    "center",
 			Orient: "vertical",
 			Feature: &op.ToolBoxFeature{
-				SaveAsImage: &op.ToolBoxFeatureSaveAsImage{Show: true, Type: "png", Title: "График"},
-				DataView:    &op.ToolBoxFeatureDataView{Show: true, Title: "Данные", Lang: []string{"Исходные данные", "Закрыть", "Обновить"}},
+				SaveAsImage: &op.ToolBoxFeatureSaveAsImage{
+					Show:  true,
+					Type:  "png",
+					Title: "График",
+				},
+				DataView: &op.ToolBoxFeatureDataView{
+					Show:  true,
+					Title: "Данные",
+					Lang:  []string{"Исходные данные", "Закрыть", "Обновить"},
+				},
 			}},
 		),
 		WithSnippetRenderer(chart),
@@ -112,8 +132,8 @@ func ConverDataBar(data om.OrderedMap[string, int]) ([]op.BarData, []string) {
 	axs := make([]string, data.Len())
 
 	for id, key := range data.Keys() {
-		value, _ := data.Get(key)
-		ret[id] = op.BarData{Name: key, Value: value}
+		val, _ := data.Get(key)
+		ret[id] = op.BarData{Name: key, Value: val}
 		axs[id] = key
 	}
 
@@ -123,21 +143,19 @@ func ConverDataBar(data om.OrderedMap[string, int]) ([]op.BarData, []string) {
 func BarChart(title string, values om.OrderedMap[string, int]) template.HTML {
 	chart := ch.NewBar()
 
-	chart.SetGlobalOptions(GetChartOptions(title, chart)...)
-
 	series, axis := ConverDataBar(values)
 
 	chart.AddSeries("", series)
 
 	chart.SetXAxis(axis).SetSeriesOptions(ch.WithLabelOpts(op.Label{Show: true, Position: "top"}))
 
+	chart.SetGlobalOptions(GetChartOptions(title, chart)...)
+
 	return ToSnippet(chart)
 }
 
 func BarChartSeveral(title string, axis []string, values om.OrderedMap[string, om.OrderedMap[string, int]]) template.HTML {
 	chart := ch.NewBar()
-
-	chart.SetGlobalOptions(GetChartOptions(title, chart)...)
 
 	for _, key := range values.Keys() {
 		data, _ := values.Get(key)
@@ -147,6 +165,8 @@ func BarChartSeveral(title string, axis []string, values om.OrderedMap[string, o
 
 	chart.SetXAxis(axis)
 
+	chart.SetGlobalOptions(GetChartOptions(title, chart)...)
+
 	return ToSnippet(chart)
 }
 
@@ -154,8 +174,8 @@ func ConverDataPie(data om.OrderedMap[string, int]) []op.PieData {
 	ret := make([]op.PieData, data.Len())
 
 	for id, key := range data.Keys() {
-		value, _ := data.Get(key)
-		ret[id] = op.PieData{Name: key, Value: value}
+		val, _ := data.Get(key)
+		ret[id] = op.PieData{Name: key, Value: val}
 	}
 
 	return ret
@@ -164,11 +184,11 @@ func ConverDataPie(data om.OrderedMap[string, int]) []op.PieData {
 func PieChart(title string, values om.OrderedMap[string, int]) template.HTML {
 	chart := ch.NewPie()
 
-	chart.SetGlobalOptions(GetChartOptions(title, chart)...)
-
 	chart.AddSeries("", ConverDataPie(values))
 
 	chart.SetSeriesOptions(ch.WithPieChartOpts(op.PieChart{Radius: []string{"25%", "55%"}}))
+
+	chart.SetGlobalOptions(GetChartOptions(title, chart)...)
 
 	return ToSnippet(chart)
 }
@@ -227,9 +247,11 @@ func GeoChartNested(m om.OrderedMap[string, om.OrderedMap[string, Points]], k om
 
 	m = SwitchKeys(m, k)
 	for _, key := range m.Keys() {
-		value, _ := m.Get(key)
-		ret.Set(key, GeoChart("", value))
+		val, _ := m.Get(key)
+		ret.Set(key, GeoChart("", val))
 	}
 
 	return *ret
 }
+
+// We should raise our requirement from "can it run doom?" to "can it run quake?"

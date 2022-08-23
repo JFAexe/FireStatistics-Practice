@@ -10,8 +10,6 @@
     <link rel = 'stylesheet' href = '/assets/styles/modern-normalize.min.css'>
     <link rel = 'stylesheet' href = '/assets/styles/style.css'>
 
-    <script src = '/assets/scripts/utils.js'></script>
-
     <title>FSP | Главная</title>
 </head>
 
@@ -27,13 +25,18 @@
 
         <div class = 'block'>
             <div class = 'block-text'>
-                <p>Lorem, ipsum dolor sit amet consectetur adipisicing elit. Commodi earum numquam reprehenderit. Iste labore aut cumque quo. Eaque suscipit sint ducimus placeat natus, nam asperiores ipsum, aut eos eius earum illum aliquid enim hic error exercitationem perspiciatis quae magnam a assumenda neque perferendis doloribus aperiam. Suscipit quam minus voluptatibus, tenetur, quod mollitia est distinctio porro blanditiis reiciendis atque aspernatur placeat?</p>
-                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quibusdam veniam fuga animi quos possimus est consequuntur dicta esse officiis, ipsum dolorum natus vel repudiandae perspiciatis aspernatur ab magni minus aliquam quidem quod a inventore? Voluptatibus officiis quidem impedit facilis minima rem nobis dolore a at nihil architecto sit repellat voluptas recusandae molestias ipsum incidunt earum libero hic nemo, magnam deleniti.</p>
+                <p>Лесной пожар — это одна из самых опасных и страшных стихий. Каждый год от неконтролируемого огня погибает много животных и людей, также страдает почва и растения.</p>
+                <p>Лесом покрыто почти две трети территории России. Общая площадь земель лесного фонда, по данным Рослесхоза, составляет 1 млрд 146 млн га. Ежегодно в России регистрируется от 9 тыс. до 35 тыс. лесных пожаров, охватывающих площади от 500 тыс. до 3,5 млн га. Согласно данным МЧС России и Рослесхоза, всего с начала 1992 года по конец 2018 года в России зарегистрировано порядка 635 тыс. лесных пожаров, то есть затронувших земли лесного фонда.</p>
+                <p>Обращая внимание на статистику, можно заметить, что данная проблема остаётся актуальной до сих пор. Именно поэтому, в своей работе, нам хотелось бы рассмотреть её более детально. Для этого мы поставили перед собой ряд задач, решение которых было достигнуто за счёт создание нашего программного продукта:</p>
+                <p>1. Визуализировать масштабы проблемы с помощью карт и диаграмм;</p>
+                <p>2. Реализовать быструю обработку информации о состоянии пожаров на данный момент времени;</p>
+                <p>3. Сократить время на поиск информации о текущем состоянии и кол-ве пожаров;</p>
+                <p>4. Привлечь внимание людей к проблеме лесных пожаров.</p>
             </div>
         </div>
 
         {{ if . }}
-        <div class = 'block-header'><h2>Перейти к отчёту</h2></div>
+        <div class = 'block-header'><h2>Перейти к графическому отчёту</h2></div>
         <div class = 'block'>
             <div class = 'block-links'>
             {{ range $name, $link := . }}
@@ -46,6 +49,8 @@
 
     {{ template "footer" }}
 </body>
+
+{{ safe "<!-- Blazingly fast -->" }}
 
 </html>
 {{ end }}
@@ -114,7 +119,9 @@
 
 {{ define "footer" }}
 <footer>
-    <h3><a class = 'link' target = '_blank' href = 'https://tinyurl.com/y56j4nzr'>Sources</a></h3>
+    <div>Copyright (c) 2022 Киберманулы</div>
+    <div></div>
+    <div>Александр 'JFAexe' Кониченко | Александр Минеев | Охапочкина Юлия | Гаранин Артём</div>
 </footer>
 {{ end }}
 

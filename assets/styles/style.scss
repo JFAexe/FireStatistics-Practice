@@ -62,13 +62,15 @@ a.link {
     text-decoration: none;
     border-bottom:   none;
     transition:      all 0.1s ease-in-out;
+    padding:         0.1em 0 0;
 
     &:hover {
         border-radius:    $border-radius;
         color:            $color-main;
         background-color: black;
-        padding:          0.1em 0.3em 0.2em;
-        margin:           -0.2em;
+        padding:          0.1em 0.3em 0.25em;
+        margin:           0 -0.3em 0;
+        text-shadow:      $shadow-secondary;
     }
 }
 
@@ -91,10 +93,34 @@ header {
 }
 
 footer {
-    @include       block-base;
-    @include       flex;
-    margin-top:    2em;
-    border-radius: $border-radius 0 0;
+    @include        block-base;
+    @include        flex;
+    flex-direction: column;
+    margin-top:     2em;
+    border-radius:  $border-radius 0 0;
+    font-size:      1.1em;
+    font-weight:    600;
+    text-shadow:    $shadow-text;
+
+    div {
+        margin: 0.25em 4em;
+
+        p {
+            margin: 0.1em;
+        }
+
+        span {
+            margin: 0 1em;
+        }
+    }
+
+    div:first-of-type {
+        margin: 1em 4em 0;
+    }
+
+    div:last-of-type {
+        margin: 0 4em 1em;
+    }
 }
 
 .block-header {
@@ -120,12 +146,13 @@ footer {
 .block-text {
     margin:         auto;
     max-width:      720px;
-    text-shadow:    $shadow-text;
+    font-size:      1.1em;
     font-weight:    600;
-    letter-spacing: 0.05em;
-    word-spacing:   0.75em;
-    text-indent:    2em;
+    text-shadow:    $shadow-text;
     text-align:     justify;
+    text-indent:    2em;
+    letter-spacing: 0.05em;
+    word-spacing:   0.5em;
 }
 
 .block-links {
@@ -243,12 +270,23 @@ footer {
     }
 }
 
+.subblock-flex {
+    @include flex;
+    padding: 1em;
+}
+
 .top-image {
     background-image: url('../images/topimage.png');
 }
 
 .middle-image {
     background-image: url('../images/middleimage.png');
+}
+
+.report-image {
+    max-width:  384px;
+    box-shadow: $shadow-text;
+    margin:     0 1em;
 }
 
 .charts-container {

@@ -31,9 +31,9 @@ func SetupLogger() {
 }
 
 func IsValidFile(path string) (bool, error) {
-	info, err := os.Stat(path)
+	inf, err := os.Stat(path)
 	if err == nil {
-		return !info.IsDir() && filepath.Ext(path) == ".csv", nil
+		return !inf.IsDir() && filepath.Ext(path) == ".csv", nil
 	}
 
 	if os.IsNotExist(err) {
@@ -64,7 +64,7 @@ func RemoveDuplicateValues[T comparable](s []T) []T {
 	list := make([]T, 0)
 
 	for _, entry := range s {
-		if _, value := keys[entry]; !value {
+		if _, val := keys[entry]; !val {
 			keys[entry] = true
 
 			list = append(list, entry)
@@ -88,10 +88,10 @@ func SwitchKeys[T any](m om.OrderedMap[string, T], k om.OrderedMap[string, strin
 			break
 		}
 
-		value, _ := m.Get(oldkey)
+		val, _ := m.Get(oldkey)
 
 		m.Delete(oldkey)
-		m.Set(newkey, value)
+		m.Set(newkey, val)
 	}
 
 	return m
@@ -120,16 +120,16 @@ func FilterPoints(r float64, p Points) map[Point]int {
 	})
 
 	ret := make(map[Point]int, 0)
-	temp := make(Points, 0)
+	tmp := make(Points, 0)
 
 	for _, point := range p {
-		if p, in := SimilarInSlice(r, point, temp); in {
+		if p, in := SimilarInSlice(r, point, tmp); in {
 			ret[p]++
 
 			continue
 		}
 
-		temp = append(temp, point)
+		tmp = append(tmp, point)
 		ret[point]++
 	}
 
@@ -187,3 +187,5 @@ func LogMemoryUsage() {
 func bToMb(b uint64) uint64 {
 	return b / 1048576
 }
+
+// Jonathan Blow is right.

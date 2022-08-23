@@ -32,13 +32,15 @@ a.link {
   text-decoration: none;
   border-bottom: none;
   transition: all 0.1s ease-in-out;
+  padding: 0.1em 0 0;
 }
 a.link:hover {
   border-radius: 0.2em 0.2em;
   color: whitesmoke;
   background-color: black;
-  padding: 0.1em 0.3em 0.2em;
-  margin: -0.2em;
+  padding: 0.1em 0.3em 0.25em;
+  margin: 0 -0.3em 0;
+  text-shadow: 0 0 0.2rem rgba(245, 245, 245, 0.502);
 }
 
 header {
@@ -68,8 +70,27 @@ footer {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
   margin-top: 2em;
   border-radius: 0.2em 0.2em 0 0;
+  font-size: 1.1em;
+  font-weight: 600;
+  text-shadow: 0.05rem 0.05rem 0.2rem rgba(0, 0, 0, 0.3764705882);
+}
+footer div {
+  margin: 0.25em 4em;
+}
+footer div p {
+  margin: 0.1em;
+}
+footer div span {
+  margin: 0 1em;
+}
+footer div:first-of-type {
+  margin: 1em 4em 0;
+}
+footer div:last-of-type {
+  margin: 0 4em 1em;
 }
 
 .block-header {
@@ -98,12 +119,13 @@ footer {
 .block-text {
   margin: auto;
   max-width: 720px;
-  text-shadow: 0.05rem 0.05rem 0.2rem rgba(0, 0, 0, 0.3764705882);
+  font-size: 1.1em;
   font-weight: 600;
-  letter-spacing: 0.05em;
-  word-spacing: 0.75em;
-  text-indent: 2em;
+  text-shadow: 0.05rem 0.05rem 0.2rem rgba(0, 0, 0, 0.3764705882);
   text-align: justify;
+  text-indent: 2em;
+  letter-spacing: 0.05em;
+  word-spacing: 0.5em;
 }
 
 .block-links {
@@ -210,12 +232,25 @@ footer {
   right: -0.325em;
 }
 
+.subblock-flex {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1em;
+}
+
 .top-image {
   background-image: url("../images/topimage.png");
 }
 
 .middle-image {
   background-image: url("../images/middleimage.png");
+}
+
+.report-image {
+  max-width: 384px;
+  box-shadow: 0.05rem 0.05rem 0.2rem rgba(0, 0, 0, 0.3764705882);
+  margin: 0 1em;
 }
 
 .charts-container {
