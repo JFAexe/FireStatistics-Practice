@@ -10,96 +10,109 @@ import (
 	sr "github.com/go-gota/gota/series"
 )
 
-var humanmonths = []string{
-	"Январь",
-	"Февраль",
-	"Март",
-	"Апрель",
-	"Май",
-	"Июнь",
-	"Июль",
-	"Август",
-	"Сентябрь",
-	"Октябрь",
-	"Ноябрь",
-	"Декабрь",
-}
+type (
+	Point          []float64
+	Points         []Point
+	ArrangedPoints []Points
+)
+
+var (
+	coordinates = []string{
+		"lon",
+		"lat",
+	}
+
+	humanmonths = []string{
+		"Январь",
+		"Февраль",
+		"Март",
+		"Апрель",
+		"Май",
+		"Июнь",
+		"Июль",
+		"Август",
+		"Сентябрь",
+		"Октябрь",
+		"Ноябрь",
+		"Декабрь",
+	}
+)
 
 func ReadDataFile(path string) df.DataFrame {
-	f, err := os.Open(path)
+	file, err := os.Open(path)
 	if err != nil {
 		ErrorLogger.Panic(err)
 	}
-	defer f.Close()
+	defer file.Close()
 
-	return df.ReadCSV(f, df.WithDelimiter(';'))
+	return df.ReadCSV(file, df.WithDelimiter(';'))
 }
 
-func PrepareDataFrame(f df.DataFrame) df.DataFrame {
-	dt := f.Select("dt").Records()[1:]
+func PrepareDataFrame(frame df.DataFrame) df.DataFrame {
+	dt := frame.Select("dt").Records()[1:]
 
-	return f.
-		Mutate(sr.New(Map(dt, func(i []string) int { return ParseDate(i).Year() }), sr.Int, "year")).
-		Mutate(sr.New(Map(dt, func(i []string) int { return int(ParseDate(i).Month()) }), sr.Int, "month")).
-		Mutate(sr.New(Map(dt, func(i []string) int { return ParseDate(i).Day() }), sr.Int, "day")).
+	return frame.
+		Mutate(sr.New(Map(dt, func(in []string) int { return ParseDate(in).Year() }), sr.Int, "year")).
+		Mutate(sr.New(Map(dt, func(in []string) int { return int(ParseDate(in).Month()) }), sr.Int, "month")).
+		Mutate(sr.New(Map(dt, func(in []string) int { return ParseDate(in).Day() }), sr.Int, "day")).
 		Rename("type", "type_id").
 		Rename("name", "type_name").
 		Drop("dt").
 		Arrange(df.Sort("year"))
 }
 
-func GetUniqueRecords(f df.DataFrame, n string) []string {
-	return RemoveDuplicates(f.Col(n).Records())
+func GetUniqueRecords(frame df.DataFrame, name string) []string {
+	return RemoveDuplicates(frame.Col(name).Records())
 }
 
-func FilterEq(n, v string) df.F {
-	return df.F{Colname: n, Comparator: sr.Eq, Comparando: v}
+func FilterEq(name, value string) df.F {
+	return df.F{Colname: name, Comparator: sr.Eq, Comparando: value}
 }
 
-func CountFilteredData(f df.DataFrame, r []string, c string) ([]int, [][][]float64) {
-	d := make([]int, 0)
-	p := make([][][]float64, 0)
+func CountFilteredData(frame df.DataFrame, r []string, c string) ([]int, []ArrangedPoints) {
+	data := make([]int, 0)
+	points := make([]Points, 0)
 
 	for _, v := range r {
-		ff := f.Filter(FilterEq(c, v))
+		ff := frame.Filter(FilterEq(c, v))
 
-		d = append(d, ff.Nrow())
-		p = append(p, Map(ff.Select([]string{"lon", "lat"}).Records()[1:], func(i []string) []float64 { return ParseFloatArray(i) }))
+		data = append(data, ff.Nrow())
+		points = append(points, Map(ff.Select(coordinates).Records()[1:], func(i []string) Point { return ParseFloatArray(i) }))
 	}
 
-	return d, p
+	return data, []ArrangedPoints{points}
 }
 
-func DoubleFilteredData(f df.DataFrame, r1, r2 []string, c1, c2 string) ([][]int, [][][][]float64) {
-	d := make([][]int, 0)
-	p := make([][][][]float64, 0)
+func DoubleFilteredData(frame df.DataFrame, r1, r2 []string, c1, c2 string) ([][]int, []ArrangedPoints) {
+	data := make([][]int, 0)
+	points := make([]ArrangedPoints, 0)
 
 	for _, v1 := range r1 {
-		tf := f.Filter(FilterEq(c1, v1))
+		tf := frame.Filter(FilterEq(c1, v1))
 
 		td := make([]int, 0)
-		tp := make([][][]float64, 0)
+		tp := make([]Points, 0)
 
 		for _, v2 := range r2 {
 			tff := tf.Filter(FilterEq(c2, v2))
 
 			td = append(td, tff.Nrow())
-			tp = append(tp, Map(tff.Select([]string{"lon", "lat"}).Records()[1:], func(i []string) []float64 { return ParseFloatArray(i) }))
+			tp = append(tp, Map(tff.Select(coordinates).Records()[1:], func(i []string) Point { return ParseFloatArray(i) }))
 		}
 
-		d = append(d, td)
-		p = append(p, tp)
+		data = append(data, td)
+		points = append(points, tp)
 	}
 
-	return d, p
+	return data, points
 }
 
-func GetMonthData(f df.DataFrame) []string {
-	t := GetUniqueRecords(f, "month")
+func GetMonthData(frame df.DataFrame) []string {
+	ret := GetUniqueRecords(frame, "month")
 
-	sort.Slice(t, func(i, j int) bool { return ParseNumber(t[i]) < ParseNumber(t[j]) })
+	sort.Slice(ret, func(i, j int) bool { return ParseNumber(ret[i]) < ParseNumber(ret[j]) })
 
-	return t
+	return ret
 }
 
 func ProcessData(path string) {
@@ -127,7 +140,7 @@ func ProcessData(path string) {
 	InfoLogger.Println(months, months_names)
 	InfoLogger.Println(types, types_names)
 
-	count_years_total, _ := CountFilteredData(frame, years, "year")
+	count_years_total, points1 := CountFilteredData(frame, years, "year")
 	count_total, _ := DoubleFilteredData(frame, months, years, "month", "year")
 	count_years, _ := DoubleFilteredData(frame, years, months, "year", "month")
 
@@ -138,7 +151,7 @@ func ProcessData(path string) {
 	out := MakePage()
 
 	out.AddCharts(
-		geoBase([][][]float64{}),
+		GeoChart(points1),
 		BarChart(strings.Join([]string{"Число за", span, "(", strconv.Itoa(count), ")"}, " "), years, count_years_total),
 		PieChart(strings.Join([]string{"Отношение за", span}, " "), types_names, types_count_total),
 		BarChartNestedValues(strings.Join([]string{"Распределение за", span}, " "), years, months_names, count_total),

@@ -1,8 +1,6 @@
 package main
 
-import (
-	"os"
-)
+import "os"
 
 func init() {
 	SetupLogger()
@@ -11,35 +9,29 @@ func init() {
 func main() {
 	args := os.Args[1:]
 
-	argscount := len(args)
-
-	if argscount < 1 {
+	if count := len(args); count < 1 {
 		InfoLogger.Println("No inputs provided")
 
 		return
+	} else {
+		InfoLogger.Printf("Inputs count: %v", count)
 	}
 
-	InfoLogger.Printf("Inputs count: %v", argscount)
-
-	for i := 0; i < argscount; i++ {
-		path := args[i]
-
-		exists, err := IsValidFile(path)
+	for _, arg := range args {
+		exists, err := IsValidFile(arg)
 		if err != nil {
-			ErrorLogger.Printf("Something is wrong with the file \"%v\". Error: %v\n", path, err)
+			ErrorLogger.Printf("Something is wrong with the file \"%v\". Error: %v\n", arg, err)
 		}
 
 		if !exists {
-			InfoLogger.Printf("\"%v\" isn't a file or doesn't exist\n", path)
+			InfoLogger.Printf("\"%v\" isn't a file or doesn't exist\n", arg)
 
 			continue
 		}
 
-		file := GetFileNameFromPath(path)
+		InfoLogger.Printf("Current file: %v (%v)\n", GetFileNameFromPath(arg), arg)
 
-		InfoLogger.Printf("Current file: %v (%v)\n", file, path)
-
-		ProcessData(path)
+		ProcessData(arg)
 
 		LogMemoryUsage()
 	}

@@ -30,9 +30,9 @@ func SetupLogger() {
 }
 
 func IsValidFile(path string) (bool, error) {
-	i, err := os.Stat(path)
+	info, err := os.Stat(path)
 	if err == nil {
-		return !i.IsDir(), nil
+		return !info.IsDir(), nil
 	}
 
 	if os.IsNotExist(err) {
@@ -47,76 +47,76 @@ func CreateFile(path, name string) *os.File {
 		ErrorLogger.Panicf("Can't create directory. Error: %v\n", err)
 	}
 
-	f, err := os.Create(strings.Join([]string{temppath, path, name}, "/"))
+	file, err := os.Create(strings.Join([]string{temppath, path, name}, "/"))
 	if err != nil {
 		ErrorLogger.Panicf("Can't create file. Error: %v\n", err)
 	}
 
-	return f
+	return file
 }
 
 func GetFileNameFromPath(path string) string {
-	_, f := filepath.Split(path)
+	_, file := filepath.Split(path)
 
-	return strings.TrimSuffix(f, filepath.Ext(f))
+	return strings.TrimSuffix(file, filepath.Ext(file))
 }
 
-func Map[T, U any](s []T, f func(T) U) []U {
-	r := make([]U, len(s))
+func Map[T, U any](slice []T, fn func(T) U) []U {
+	ret := make([]U, len(slice))
 
-	for i, v := range s {
-		r[i] = f(v)
+	for id, val := range slice {
+		ret[id] = fn(val)
 	}
 
-	return r
+	return ret
 }
 
-func RemoveDuplicates(s []string) []string {
-	if len(s) < 1 {
-		return s
+func RemoveDuplicates(slice []string) []string {
+	if len(slice) < 1 {
+		return slice
 	}
 
-	sort.Strings(s)
+	sort.Strings(slice)
 
-	prv := 1
-	for cur := 1; cur < len(s); cur++ {
-		if s[cur-1] != s[cur] {
-			s[prv] = s[cur]
-			prv++
+	prev := 1
+	for curr := 1; curr < len(slice); curr++ {
+		if slice[curr-1] != slice[curr] {
+			slice[prev] = slice[curr]
+			prev++
 		}
 	}
 
-	return s[:prv]
+	return slice[:prev]
 }
 
-func ParseDate(i []string) time.Time {
-	d, err := time.Parse(timeformat, strings.Join(i, ""))
+func ParseDate(in []string) time.Time {
+	ret, err := time.Parse(timeformat, strings.Join(in, ""))
 	if err != nil {
 		ErrorLogger.Panicf("Can't parse date. Error: %v\n", err)
 	}
 
-	return d
+	return ret
 }
 
-func ParseNumber(i string) int {
-	n, err := strconv.Atoi(i)
+func ParseNumber(in string) int {
+	ret, err := strconv.Atoi(in)
 	if err != nil {
 		ErrorLogger.Panicf("Can't parse number. Error: %v\n", err)
 	}
 
-	return n
+	return ret
 }
 
-func ParseFloatArray(i []string) []float64 {
+func ParseFloatArray(in []string) []float64 {
 	ret := make([]float64, 0)
 
-	for _, v := range i {
-		f, err := strconv.ParseFloat(v, 64)
+	for _, val := range in {
+		float, err := strconv.ParseFloat(val, 64)
 		if err != nil {
 			ErrorLogger.Panicf("Can't parse float. Error: %v\n", err)
 		}
 
-		ret = append(ret, f)
+		ret = append(ret, float)
 	}
 
 	return ret

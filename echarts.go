@@ -2,7 +2,6 @@ package main
 
 import (
 	"io"
-	"math/rand"
 
 	ch "github.com/go-echarts/go-echarts/v2/charts"
 	cm "github.com/go-echarts/go-echarts/v2/components"
@@ -14,53 +13,77 @@ func MakePage() *cm.Page {
 	return cm.NewPage().SetLayout(cm.PageFlexLayout)
 }
 
-func RenderPage(p *cm.Page, path, name string) {
-	p.Render(io.MultiWriter(CreateFile(path, name)))
+func RenderPage(page *cm.Page, path, name string) {
+	page.Render(io.MultiWriter(CreateFile(path, name)))
 }
 
-func ConverDataBar(d []int) []op.BarData {
-	items := make([]op.BarData, 0)
+func DefaultOptions(title string) []ch.GlobalOpts {
+	return []ch.GlobalOpts{
+		ch.WithTitleOpts(op.Title{Title: title, Left: "center"}),
+		ch.WithInitializationOpts(op.Initialization{Width: "45vw", Height: "40vh"}),
+		ch.WithTooltipOpts(op.Tooltip{Show: true}),
+	}
+}
 
-	for _, v := range d {
-		items = append(items, op.BarData{Value: v})
+func ConverDataBar(data []int) []op.BarData {
+	ret := make([]op.BarData, len(data))
+
+	for id, val := range data {
+		ret[id] = op.BarData{Value: val}
 	}
 
-	return items
+	return ret
 }
 
-func ConverDataPie(n []string, d []int) []op.PieData {
-	items := make([]op.PieData, 0)
+func ConverDataPie(names []string, data []int) []op.PieData {
+	ret := make([]op.PieData, len(data))
 
-	for i, v := range d {
-		items = append(items, op.PieData{Name: n[i], Value: v})
+	for id, val := range data {
+		ret[id] = op.PieData{Name: names[id], Value: val}
 	}
 
-	return items
+	return ret
 }
 
-func BarChart(title string, axis []string, values ...[]int) *ch.Bar {
+func ConverDataGeo(data []ArrangedPoints) []op.GeoData {
+	ret := make([]op.GeoData, 1024)
+
+	count := 0
+
+	for _, arrange := range data {
+		for _, points := range arrange {
+			for _, point := range points {
+				if count > 1023 {
+					break
+				}
+				ret[count] = op.GeoData{Value: point}
+				count++
+			}
+		}
+	}
+
+	return ret
+}
+
+func BarChart(title string, axis []string, values []int) *ch.Bar {
 	bar := ch.NewBar()
 
 	bar.SetGlobalOptions(DefaultOptions(title)...)
 
-	for i := 0; i < len(values); i++ {
-		bar.AddSeries("", ConverDataBar(values[i]))
-	}
+	bar.AddSeries("", ConverDataBar(values))
 
 	bar.SetXAxis(axis).SetSeriesOptions(ch.WithLabelOpts(op.Label{Show: true, Position: "top"}))
 
 	return bar
 }
 
-func BarChartNestedValues(title string, axis, names []string, values ...[][]int) *ch.Bar {
+func BarChartNestedValues(title string, axis, names []string, values [][]int) *ch.Bar {
 	bar := ch.NewBar()
 
 	bar.SetGlobalOptions(DefaultOptions(title)...)
 
-	for i := 0; i < len(values); i++ {
-		for j, v := range values[i] {
-			bar.AddSeries(names[j], ConverDataBar(v))
-		}
+	for id, val := range values {
+		bar.AddSeries(names[id], ConverDataBar(val))
 	}
 
 	bar.SetXAxis(axis)
@@ -80,41 +103,15 @@ func PieChart(title string, axis []string, values []int) *ch.Pie {
 	return pie
 }
 
-func DefaultOptions(title string) []ch.GlobalOpts {
-	return []ch.GlobalOpts{
-		ch.WithTitleOpts(op.Title{Title: title, Left: "center"}),
-		ch.WithInitializationOpts(op.Initialization{Width: "45vw", Height: "40vh"}),
-		ch.WithTooltipOpts(op.Tooltip{Show: true}),
-	}
-}
-
-func geoData(d [][][]float64) []op.GeoData {
-	points := make([]op.GeoData, 0)
-
-	c := 0
-
-	for _, v := range d {
-
-		for _, p := range v {
-			if c > 50 {
-				break
-			}
-			points = append(points, op.GeoData{Value: []float64{p[0], p[1], float64(rand.Intn(100))}})
-			c++
-		}
-	}
-
-	return points
-}
-
-func geoBase(p [][][]float64) *ch.Geo {
+func GeoChart(data []ArrangedPoints) *ch.Geo {
 	geo := ch.NewGeo()
+
 	geo.SetGlobalOptions(
 		ch.WithInitializationOpts(op.Initialization{Width: "90vw", Height: "70vh"}),
 		ch.WithGeoComponentOpts(op.GeoComponent{Map: "Russia"}),
 	)
 
-	geo.AddSeries("geo", tp.ChartEffectScatter, geoData(p))
+	geo.AddSeries("", tp.ChartEffectScatter, ConverDataGeo(data))
 
 	return geo
 }
