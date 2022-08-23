@@ -1,0 +1,92 @@
+{{ define "document" }}
+<!DOCTYPE html>
+
+<html lang = 'ru'>
+
+{{ template "head" . }}
+
+{{ template "body" . }}
+
+{{ .Comment }}
+
+</html>
+{{ end }}
+
+{{ define "head" }}
+<head>
+    <meta charset = 'UTF-8'>
+    <meta name = 'viewport' content = 'width = device-width, initial-scale = 1.0'>
+
+    <link rel = 'stylesheet' href = '/assets/styles/modern-normalize.min.css'>
+    <link rel = 'stylesheet' href = '/assets/styles/style.css'>
+
+    <script src = '/assets/scripts/echarts.min.js'></script>
+    <script src = '/assets/scripts/mapdata.min.js'></script>
+    <script src = '/assets/scripts/map.min.js'></script>
+    <script src = '/assets/scripts/utils.js'></script>
+
+    <title>{{ .Header }}</title>
+</head>
+{{ end }}
+
+{{ define "body" }}
+<body>
+    <header>
+        <img src = '/assets/images/logo.png' alt = 'Логотип' class = 'logo'>
+        <h1>Fire Statistics Project</h1>
+    </header>
+
+    <main>
+        <div class = 'image-block top-image'>
+            <h1><span>Лесные пожары в России</span></h1>
+        </div>
+
+        {{ if .Blocks }} {{ $blocks := .Blocks }}
+            {{ range $id1, $key := (getkeysBlock $blocks) }} {{ $block := (getbykeyBlock $blocks $key) }}
+                {{ if and $block (getkeysHTML $block.Snippets) }}
+                    {{ if $block.Header }}<div class = 'block-header'><h2>{{ $block.Header }}</h2></div>{{ end }}
+                    <div class = 'block' id = '{{ $key }}'>
+                        {{ range $id2, $key2 := (getkeysHTML $block.Snippets) }}
+                            {{ getbykeyHTML $block.Snippets $key2 }}
+                        {{ end }}
+                    </div>
+                {{ end }}
+            {{ end }}
+        {{ end }}
+
+        <div class = 'image-block middle-image'></div>
+
+        {{ if .Tabs }}
+            {{ template "tabs" .Tabs }}
+        {{ end }}
+    </main>
+
+    <footer>
+        <h3><a class = 'link' href = ''>Sources</a></h3>
+    </footer>
+</body>
+{{ end }}
+
+{{ define "tabs" }} {{ $snippets := .Snippets }}
+{{ if (getkeysHTML $snippets) }}
+<div class = 'tabs-block' id = '{{ .Id }}'>
+    {{ $c1 := 0 }} {{ $c2 := 0 }}
+    <ul class = 'tabs'>
+    {{ range $id, $key := (getkeysHTML $snippets) }}
+        <li {{ if eq $c1 0 }}class = 'active'{{ end }}><a href = ''>{{ $key }}</a></li>
+        {{ $c1 = inc $c1 }}
+    {{ end }}
+    </ul>
+    <div class = 'tabs-content'>
+        {{ range $id, $key := (getkeysHTML $snippets) }}
+        {{ $snippet := (getbykeyHTML $snippets $key) }}
+        <div class = 'tabs-panel {{ if eq $c2 0 }}active{{ end }}' data-index = '{{ $c2 }}'>
+            {{ $snippet }}
+        </div>
+        {{ $c2 = inc $c2 }}
+        {{ end }}
+    </div>
+</div>
+<script>ProcessTabs('{{ .Id }}')</script>
+{{ end }}
+{{ end }}

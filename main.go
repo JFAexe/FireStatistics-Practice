@@ -1,13 +1,12 @@
 package main
 
 import (
+	"html/template"
 	"os"
+	"strings"
 	"time"
-)
 
-const (
-	rad float64 = 4
-	dia float32 = float32(rad * 18)
+	om "github.com/elliotchance/orderedmap/v2"
 )
 
 func init() {
@@ -39,12 +38,42 @@ func main() {
 			continue
 		}
 
-		InfoLogger.Printf("Current file: %s (%s)\n", GetFileNameFromPath(arg), arg)
+		name := GetFileNameFromPath(arg)
 
-		ProcessData(arg)
+		InfoLogger.Printf("Current file: %s (%s)\n", name, arg)
 
-		LogMemoryUsage()
+		data := ProcessData(arg)
+
+		pageblock := *om.NewOrderedMap[string, Block]()
+		pageblock.Set("total", Block{
+			Id:       "total",
+			Header:   "Заголовок",
+			Snippets: data,
+		})
+
+		tabblock := *om.NewOrderedMap[string, template.HTML]()
+		tabblock.Set("1", template.HTML("<p>Test 1</p>"))
+		tabblock.Set("2", template.HTML("<p>Test 2</p>"))
+
+		page := Page{
+			Header: strings.Join([]string{"FSP (", name, ")"}, ""),
+			Blocks: pageblock,
+			Tabs: Block{
+				Id:       "test",
+				Header:   "Test",
+				Snippets: tabblock,
+			},
+			Comment: htmlmsg,
+		}
+
+		MakeHttpHandle(name, "document", page)
+
+		OpenUrlInBrowser(strings.Join([]string{"http://localhost:1337/", name}, ""))
 	}
 
 	InfoLogger.Println("Main", time.Since(startup))
+
+	LogMemoryUsage()
+
+	RunHttpServer()
 }

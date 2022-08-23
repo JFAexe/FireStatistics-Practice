@@ -1,25 +1,85 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
+	"html/template"
 	"io"
+	"regexp"
 
 	om "github.com/elliotchance/orderedmap/v2"
 	ch "github.com/go-echarts/go-echarts/v2/charts"
-	cm "github.com/go-echarts/go-echarts/v2/components"
 	op "github.com/go-echarts/go-echarts/v2/opts"
 	tp "github.com/go-echarts/go-echarts/v2/types"
 )
 
-func MakePage(c ...cm.Charter) *cm.Page {
-	page := cm.NewPage().SetLayout(cm.PageFlexLayout)
+type (
+	Renderer interface {
+		Render(w io.Writer) error
+	}
 
-	page.AddCharts(c...)
+	SnippetRenderer struct {
+		c      interface{}
+		before []func()
+	}
+)
 
-	return page
+const (
+	DotRad      float64 = 4
+	DotDia      float32 = float32(DotRad * 18)
+	HTMLSnippet string  = `
+<div class = 'charts-container'>
+    <div class = 'item' id = '{{ .ChartID }}' style = 'width:{{ .Initialization.Width }}; height:{{ .Initialization.Height }};'></div>
+</div>
+<script type = 'text/javascript'> 'use strict';
+    let goecharts_{{ .ChartID | safeJS }} = echarts.init(document.getElementById('{{ .ChartID | safeJS }}'), '{{ .Theme }}');
+    let option_{{ .ChartID | safeJS }} = {{ .JSON }};
+    goecharts_{{ .ChartID | safeJS }}.setOption(option_{{ .ChartID | safeJS }});
+    {{- range .JSFunctions.Fns }}
+    	{{ . | safeJS }}
+    {{- end }}
+</script>
+`
+)
+
+var SnippetTemplate *template.Template
+
+func NewSnippetRenderer(c interface{}, before ...func()) Renderer {
+	return &SnippetRenderer{c: c, before: before}
 }
 
-func RenderPage(page *cm.Page, path, name string) {
-	page.Render(io.MultiWriter(CreateFile(path, name)))
+func (r *SnippetRenderer) Render(w io.Writer) error {
+	for _, fn := range r.before {
+		fn()
+	}
+
+	tplfuncs := template.FuncMap{
+		"safeJS": func(s interface{}) template.JS {
+			return template.JS(fmt.Sprint(s))
+		},
+	}
+
+	tpl := template.Must(template.New("chartsnippet").Funcs(tplfuncs).Parse(HTMLSnippet))
+
+	var buf bytes.Buffer
+	if err := tpl.ExecuteTemplate(&buf, "chartsnippet", r.c); err != nil {
+		return err
+	}
+
+	pat := regexp.MustCompile(`(__f__")|("__f__)|(__f__)`)
+	content := pat.ReplaceAll(buf.Bytes(), []byte(""))
+
+	_, err := w.Write(content)
+
+	return err
+}
+
+func ToSnippet(r Renderer) template.HTML {
+	var buf bytes.Buffer
+
+	r.Render(&buf)
+
+	return template.HTML(buf.String())
 }
 
 func WithRenderer(opt Renderer) ch.GlobalOpts {
@@ -32,9 +92,10 @@ func WithScatterSize(opt float32) ch.SeriesOpts {
 
 func DefaultOptions(title string, chart interface{ Validate() }) []ch.GlobalOpts {
 	return []ch.GlobalOpts{
-		ch.WithTitleOpts(op.Title{Title: title, Left: "center"}),
-		ch.WithInitializationOpts(op.Initialization{Width: "45vw", Height: "40vh"}),
+		ch.WithTitleOpts(op.Title{Title: title, Left: "center", TitleStyle: &op.TextStyle{FontFamily: "'Exo 2', sans-serif"}}),
+		ch.WithInitializationOpts(op.Initialization{Width: "1080px", Height: "400px"}),
 		ch.WithTooltipOpts(op.Tooltip{Show: true}),
+		ch.WithLegendOpts(op.Legend{Show: true, Bottom: "bottom", Left: "center"}),
 		WithRenderer(NewSnippetRenderer(chart, chart.Validate)),
 	}
 }
@@ -110,7 +171,7 @@ func ConverDataGeo(data Points, tip string) ([]op.GeoData, float32, float32) {
 
 	min, max := 1, 1
 
-	for point, count := range FilterPoints(rad, data) {
+	for point, count := range FilterPoints(DotRad, data) {
 		if count < min {
 			min = count
 		}
@@ -142,13 +203,14 @@ func GeoChart(title string, data om.OrderedMap[string, Points]) *ch.Geo {
 			cmax = max
 		}
 
-		chart.AddSeries("", tp.ChartScatter, series, WithScatterSize(dia))
+		chart.AddSeries(key, tp.ChartScatter, series, WithScatterSize(DotDia))
 	}
 
 	chart.SetGlobalOptions(append(
 		DefaultOptions(title, chart),
 		ch.WithGeoComponentOpts(op.GeoComponent{Map: "Russia"}),
-		ch.WithInitializationOpts(op.Initialization{Width: "90vw", Height: "70vh"}),
+		ch.WithLegendOpts(op.Legend{Show: true, Bottom: "bottom", Left: "center"}),
+		ch.WithVisualMapOpts(op.VisualMap{Calculable: true, Min: cmin, Max: cmax}),
 	)...)
 
 	return chart

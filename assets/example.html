@@ -1,0 +1,72 @@
+<!doctype html>
+
+<html lang = 'ru'>
+
+<head>
+    <meta charset = 'utf-8'>
+    <meta name = 'viewport' content = 'width=device-width, initial-scale=1'>
+
+    <link href = 'styles/modern-normalize.min.css' rel = 'stylesheet' type = 'text/css'/>
+
+    <link href = 'styles/style.css' rel = 'stylesheet' type = 'text/css'/>
+
+    <script src = 'scripts/echarts.min.js'></script>
+    <script src = 'scripts/mapdata.min.js'></script>
+    <script src = 'scripts/map.min.js'></script>
+    <script src = 'scripts/utils.js'></script>
+
+    <title>Fire Statistics</title>
+</head>
+
+<body>
+
+    <header>
+        <img src = 'images/logo.png' alt = 'Логотип' class = 'logo'>
+        <h1>Fire Statistics Project</h1>
+        <h1 id = 'num'></h1>
+    </header>
+
+    <div class = 'image-block top-image'>
+        <h1><span>Лесные пожары в России</span></h1>
+    </div>
+
+    <div class = 'block-header'>
+        <h2>Header</h2>
+    </div>
+
+    <div class = 'block'>
+
+    </div>
+
+    <div class = 'block-text'>
+        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Maiores nostrum quidem quos corporis, nemo, veniam odit eligendi reprehenderit eos, omnis asperiores debitis voluptas expedita optio? Perferendis doloremque earum itaque ab illo quasi blanditiis unde alias accusamus, debitis saepe vel tempore animi assumenda est, quod cum temporibus, quaerat fuga non corrupti sapiente. Debitis quod accusantium impedit quasi, cumque adipisci esse natus?</p>
+        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Numquam placeat fugiat, saepe soluta odio consectetur. Soluta sequi numquam quia quo ducimus sit facere perspiciatis hic officiis aspernatur ut exercitationem sapiente iste temporibus quidem eos, neque maiores, deleniti iusto qui voluptatum culpa? Numquam asperiores voluptate nesciunt consectetur rem quod ab commodi similique, architecto nihil nulla debitis perferendis vel, esse sed laborum aut! Similique harum dolorem quas sunt, non nobis molestiae adipisci debitis, consectetur possimus iusto maxime consequuntur cumque. Ab repellendus similique, recusandae eum libero impedit voluptates facere atque laboriosam! Nam dolorum perspiciatis delectus nemo in obcaecati exercitationem harum excepturi officiis enim.</p>
+    </div>
+
+    <div class = 'image-block middle-image'></div>
+
+    <div class = 'tabs-block' id = 'tabs-1'>
+        <ul class = 'tabs'>
+            <li class = 'active'><a href = ''>Tab 1</a></li>
+            <li><a href = ''>Tab 2</a></li>
+        </ul>
+        <div class = 'tabs-content'>
+            <div class = 'tabs-panel active' data-index = '0'>
+                Tab 1
+            </div>
+            <div class = 'tabs-panel' data-index = '1'>
+                Tab 2
+            </div>
+        </div>
+    </div>
+
+    <script>
+        ProcessTabs('tabs-1')
+    </script>
+
+    <footer>
+        <h3><a class = 'link' href = ''>Sources</a></h3>
+    </footer>
+</body>
+
+</html>

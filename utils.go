@@ -4,6 +4,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -14,10 +15,7 @@ import (
 	om "github.com/elliotchance/orderedmap/v2"
 )
 
-const (
-	temppath   string = "./temp"
-	timeformat string = "2006-01-02"
-)
+const timeformat string = "2006-01-02"
 
 var (
 	InfoLogger  *log.Logger
@@ -43,19 +41,6 @@ func IsValidFile(path string) (bool, error) {
 	}
 
 	return false, err
-}
-
-func CreateFile(path, name string) *os.File {
-	if err := os.MkdirAll(filepath.Join(temppath, path, "/"), 0700); err != nil {
-		ErrorLogger.Panicf("Can't create directory. Error: %s\n", err)
-	}
-
-	file, err := os.Create(filepath.Join(temppath, path, name, "/"))
-	if err != nil {
-		ErrorLogger.Panicf("Can't create file. Error: %s\n", err)
-	}
-
-	return file
 }
 
 func GetFileNameFromPath(path string) string {
@@ -154,7 +139,7 @@ func FilterPoints(r float64, p Points) map[Point]int {
 func ParseDate(in []string) time.Time {
 	ret, err := time.Parse(timeformat, in[0])
 	if err != nil {
-		ErrorLogger.Panicf("Can't parse date. Error: %s\n", err)
+		ErrorLogger.Fatalf("Can't parse date. Error: %s\n", err)
 	}
 
 	return ret
@@ -170,6 +155,25 @@ func DateMonth(in []string) int {
 
 func IntToStr(in int) string {
 	return strconv.Itoa(in)
+}
+
+func OpenUrlInBrowser(url string) error {
+	var cmd string
+	var args []string
+
+	switch runtime.GOOS {
+	case "windows":
+		cmd = "cmd"
+		args = []string{"/c", "start"}
+	case "darwin":
+		cmd = "open"
+	default:
+		cmd = "xdg-open"
+	}
+
+	args = append(args, url)
+
+	return exec.Command(cmd, args...).Start()
 }
 
 func LogMemoryUsage() {
