@@ -2,33 +2,18 @@ package main
 
 import (
 	"io"
-	"os"
-	"strings"
 
 	ch "github.com/go-echarts/go-echarts/v2/charts"
 	cm "github.com/go-echarts/go-echarts/v2/components"
 	op "github.com/go-echarts/go-echarts/v2/opts"
 )
 
-func MakePage(c ...cm.Charter) *cm.Page {
-	page := cm.NewPage()
-
-	page.AddCharts(c...)
-
-	return page
+func MakePage() *cm.Page {
+	return cm.NewPage()
 }
 
 func RenderPage(p *cm.Page, path, name string) {
-	if err := os.MkdirAll(strings.Join([]string{temppath, path}, "/"), 0700); err != nil {
-		panic(err)
-	}
-
-	f, err := os.Create(strings.Join([]string{temppath, path, name}, "/"))
-	if err != nil {
-		panic(err)
-	}
-
-	p.Render(io.MultiWriter(f))
+	p.Render(io.MultiWriter(CreateFile(path, name)))
 }
 
 func ConverDataBar[T any](d []T) []op.BarData {
@@ -88,7 +73,7 @@ func PieChart[T any](title string, axis []string, values []T) *ch.Pie {
 
 	pie.AddSeries("", ConverDataPie(axis, values))
 
-	pie.SetSeriesOptions(ch.WithPieChartOpts(op.PieChart{Radius: []string{"30%", "50%"}}))
+	pie.SetSeriesOptions(ch.WithPieChartOpts(op.PieChart{Radius: []string{"25%", "55%"}}))
 
 	return pie
 }

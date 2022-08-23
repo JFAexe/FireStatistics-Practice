@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"sort"
@@ -43,23 +42,17 @@ func IsValidFile(path string) (bool, error) {
 	return false, err
 }
 
-func OpenUrlInBrowser(url string) error {
-	var cmd string
-	var args []string
-
-	switch runtime.GOOS {
-	case "windows":
-		cmd = "cmd"
-		args = []string{"/c", "start"}
-	case "darwin":
-		cmd = "open"
-	default:
-		cmd = "xdg-open"
+func CreateFile(path, name string) *os.File {
+	if err := os.MkdirAll(strings.Join([]string{temppath, path}, "/"), 0700); err != nil {
+		ErrorLogger.Panicf("Can't create directory. Error: %v\n", err)
 	}
 
-	args = append(args, url)
+	f, err := os.Create(strings.Join([]string{temppath, path, name}, "/"))
+	if err != nil {
+		ErrorLogger.Panicf("Can't create file. Error: %v\n", err)
+	}
 
-	return exec.Command(cmd, args...).Start()
+	return f
 }
 
 func Map[T, U any](s []T, f func(T) U) []U {

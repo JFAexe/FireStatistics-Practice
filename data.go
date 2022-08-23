@@ -25,13 +25,13 @@ var humanmonths = []string{
 }
 
 func ReadDataFile(path string) df.DataFrame {
-	file, err := os.Open(path)
+	f, err := os.Open(path)
 	if err != nil {
 		ErrorLogger.Panic(err)
 	}
-	defer file.Close()
+	defer f.Close()
 
-	return df.ReadCSV(file, df.WithDelimiter(';'))
+	return df.ReadCSV(f, df.WithDelimiter(';'))
 }
 
 func PrepareDataFrame(f df.DataFrame) df.DataFrame {
@@ -55,27 +55,42 @@ func FilterEq(n, v string) df.F {
 	return df.F{Colname: n, Comparator: sr.Eq, Comparando: v}
 }
 
-func CountFilteredData(f df.DataFrame, r []string, c string) []any {
-	data := []any{}
+func CountFilteredData(f df.DataFrame, r []string, c string) ([]any, []any) {
+	d := []any{}
+	p := []any{}
+
 	for _, v := range r {
-		data = append(data, f.Filter(FilterEq(c, v)).Nrow())
+		ff := f.Filter(FilterEq(c, v))
+
+		d = append(d, ff.Nrow())
+		p = append(p, ff.Select([]string{"lon", "lat"}).Records()[1:])
 	}
 
-	return data
+	return d, p
 }
 
-func DoubleFilteredData(f df.DataFrame, r1, r2 []string, c1, c2 string) [][]any {
-	data := [][]any{}
+func DoubleFilteredData(f df.DataFrame, r1, r2 []string, c1, c2 string) ([][]any, [][]any) {
+	d := [][]any{}
+	c := [][]any{}
+
 	for _, v1 := range r1 {
 		tf := f.Filter(FilterEq(c1, v1))
+
 		td := []any{}
+		tc := []any{}
+
 		for _, v2 := range r2 {
-			td = append(td, tf.Filter(FilterEq(c2, v2)).Nrow())
+			tff := tf.Filter(FilterEq(c2, v2))
+
+			td = append(td, tff.Nrow())
+			tc = append(tc, tff.Select([]string{"lon", "lat"}).Records()[1:])
 		}
-		data = append(data, td)
+
+		d = append(d, td)
+		c = append(c, tc)
 	}
 
-	return data
+	return d, c
 }
 
 func GetMonthData(f df.DataFrame) []string {
@@ -111,29 +126,28 @@ func ProcessData(path string) {
 
 	title := strings.Join([]string{"Распределение за ", years[0], "-", years[len(years)-1]}, "")
 
-	count_years_total := CountFilteredData(frame, years, "year")
-	count_total := DoubleFilteredData(frame, months, years, "month", "year")
-	count_years := DoubleFilteredData(frame, years, months, "year", "month")
+	count_years_total, _ := CountFilteredData(frame, years, "year")
+	count_total, _ := DoubleFilteredData(frame, months, years, "month", "year")
+	count_years, _ := DoubleFilteredData(frame, years, months, "year", "month")
 
-	out_count := MakePage(
+	types_count_total, _ := CountFilteredData(frame, types, "type")
+	types_total, _ := DoubleFilteredData(frame, types, years, "type", "year")
+	types_years, _ := DoubleFilteredData(frame, years, types, "year", "type")
+
+	out := MakePage()
+
+	out.AddCharts(
 		BarChart("count_total_years", years, count_years_total),
-		BarChartNestedValues(title, years, months_names, count_total),
-	)
-	for i, y := range count_years {
-		out_count.AddCharts(BarChart(strings.Join([]string{"count_", years[i]}, ""), months_names, y))
-	}
-	RenderPage(out_count, GetFileNameFromPath(path), "count.html")
-
-	types_count_total := CountFilteredData(frame, types, "type")
-	types_total := DoubleFilteredData(frame, types, years, "type", "year")
-	types_years := DoubleFilteredData(frame, years, types, "year", "type")
-
-	out_types := MakePage(
 		PieChart("types_total_percentage", types_names, types_count_total),
+		BarChartNestedValues(title, years, months_names, count_total),
 		BarChartNestedValues(title, years, types_names, types_total),
 	)
-	for i, y := range types_years {
-		out_types.AddCharts(PieChart(strings.Join([]string{"types_", years[i]}, ""), types_names, y))
+	for i := 0; i < len(count_years); i++ {
+		out.AddCharts(
+			BarChart(strings.Join([]string{"count_", years[i]}, ""), months_names, count_years[i]),
+			PieChart(strings.Join([]string{"types_", years[i]}, ""), types_names, types_years[i]),
+		)
 	}
-	RenderPage(out_types, GetFileNameFromPath(path), "type.html")
+
+	RenderPage(out, GetFileNameFromPath(path), "out.html")
 }
