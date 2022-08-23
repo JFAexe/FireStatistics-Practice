@@ -37,12 +37,10 @@ func main() {
 
 		file := GetFileNameFromPath(path)
 
-		InfoLogger.Printf("Current file: %v\n", file)
-
-		MakeHttpHandle(file, path)
+		InfoLogger.Printf("Current file: %v (%v)\n", file, path)
 
 		ProcessData(path)
-	}
 
-	LogMemoryUsage()
+		LogMemoryUsage()
+	}
 }

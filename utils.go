@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -23,18 +24,28 @@ var (
 )
 
 func SetupLogger() {
-	var logout *os.File
+	var out *os.File
 
-	logout = os.Stdout
+	if err := os.MkdirAll(temppath, 0700); err != nil {
+		log.Printf("Can't create temp folder. Error: %v\n", err)
+	}
 
-	InfoLogger = log.New(logout, "[INFO] ", log.LstdFlags|log.Lmsgprefix)
-	ErrorLogger = log.New(logout, "[ERROR] ", log.LstdFlags|log.Lmsgprefix)
+	f, err := os.OpenFile("./fa-temp/fa-logs.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Printf("Switching logs output to stdout. Error: %v\n", err)
+		out = os.Stdout
+	} else {
+		out = f
+	}
+
+	InfoLogger = log.New(out, "[INFO] ", log.LstdFlags|log.Lmsgprefix)
+	ErrorLogger = log.New(out, "[ERROR] ", log.LstdFlags|log.Lmsgprefix)
 }
 
 func IsValidFile(path string) (bool, error) {
-	info, err := os.Stat(path)
+	i, err := os.Stat(path)
 	if err == nil {
-		return !info.IsDir(), nil
+		return !i.IsDir(), nil
 	}
 
 	if os.IsNotExist(err) {
@@ -45,13 +56,11 @@ func IsValidFile(path string) (bool, error) {
 }
 
 func WriteFileFromBytes(path, name string, buf []byte) error {
-	dir := strings.Join([]string{temppath, GetFileNameFromPath(path)}, "/")
-
-	if err := os.MkdirAll(dir, 0700); err != nil {
+	if err := os.MkdirAll(path, 0700); err != nil {
 		return err
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(dir, name), buf, 0600); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(path, name), buf, 0600); err != nil {
 		return err
 	}
 
@@ -94,31 +103,39 @@ func RemoveDuplicates(s []string) []string {
 
 	sort.Strings(s)
 
-	prev := 1
-
+	p := 1
 	for cur := 1; cur < len(s); cur++ {
 		if s[cur-1] != s[cur] {
-			s[prev] = s[cur]
-			prev++
+			s[p] = s[cur]
+			p++
 		}
 	}
 
-	return s[:prev]
+	return s[:p]
 }
 
 func GetFileNameFromPath(path string) string {
-	_, file := filepath.Split(path)
+	_, f := filepath.Split(path)
 
-	return strings.TrimSuffix(file, filepath.Ext(file))
+	return strings.TrimSuffix(f, filepath.Ext(f))
 }
 
 func ParseDate(i []string) time.Time {
-	date, err := time.Parse(timeformat, strings.Join(i, ""))
+	d, err := time.Parse(timeformat, strings.Join(i, ""))
 	if err != nil {
 		ErrorLogger.Panicf("Can't parse date. Error: %v\n", err)
 	}
 
-	return date
+	return d
+}
+
+func ParseNumber(i string) int {
+	n, err := strconv.Atoi(i)
+	if err != nil {
+		ErrorLogger.Panicf("Can't parse number. Error: %v\n", err)
+	}
+
+	return n
 }
 
 func LogMemoryUsage() {
