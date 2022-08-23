@@ -16,22 +16,20 @@ type (
 	Points []Point
 )
 
-var (
-	humanmonths = map[string]string{
-		"1":  "Январь",
-		"2":  "Февраль",
-		"3":  "Март",
-		"4":  "Апрель",
-		"5":  "Май",
-		"6":  "Июнь",
-		"7":  "Июль",
-		"8":  "Август",
-		"9":  "Сентябрь",
-		"10": "Октябрь",
-		"11": "Ноябрь",
-		"12": "Декабрь",
-	}
-)
+var humanmonths = map[string]string{
+	"1":  "Январь",
+	"2":  "Февраль",
+	"3":  "Март",
+	"4":  "Апрель",
+	"5":  "Май",
+	"6":  "Июнь",
+	"7":  "Июль",
+	"8":  "Август",
+	"9":  "Сентябрь",
+	"10": "Октябрь",
+	"11": "Ноябрь",
+	"12": "Декабрь",
+}
 
 func ReadDataFile(path string) df.DataFrame {
 	file, err := os.Open(path)
@@ -113,7 +111,7 @@ func DoubleFilterPass(frame df.DataFrame, r1, r2 []string, c1, c2 string) (om.Or
 	return *data, *points
 }
 
-func ProcessData(path string) om.OrderedMap[string, template.HTML] {
+func ProcessData(path string) Page {
 	frame := PrepareDataFrame(ReadDataFile(path))
 
 	count := frame.Nrow()
@@ -134,24 +132,75 @@ func ProcessData(path string) om.OrderedMap[string, template.HTML] {
 		types_names.Set(t, frame.Filter(FilterEq("type", t)).Col("name").Records()[0])
 	}
 
-	count_years_total, points1 := SingleFilterPass(frame, years, "year")
-	count_total, _ := DoubleFilterPass(frame, months, years, "month", "year")
+	chartnames := map[string]string{
+		"bar_count":           strings.Join([]string{"Подсчёт случаев за ", span}, ""),
+		"bar_count_title":     strings.Join([]string{"Суммарно зарегистрировано ", IntToStr(count)}, ""),
+		"bar_span":            strings.Join([]string{"Распределение за", span}, " "),
+		"bar_year_count":      "Подсчёт случаев",
+		"pie_percentage":      strings.Join([]string{"Доли типов за", span}, " "),
+		"pie_year_percentage": "Доли типов",
+		"map":                 "Карта распределения",
+		"map_year_count":      "Распределение",
+		"map_year_types":      "Карта типов",
+	}
 
-	types_count_total, _ := SingleFilterPass(frame, types, "type")
-	types_total, _ := DoubleFilterPass(frame, types, years, "type", "year")
+	count_years_total, points_count_years_total := SingleFilterPass(frame, years, "year")
+	count_total, points_count_total := DoubleFilterPass(frame, months, years, "month", "year")
+	count_years, points_count_years := DoubleFilterPass(frame, years, months, "year", "month")
 
-	map_total := GeoChart("", points1)
-	bar_count_total := BarChart(strings.Join([]string{"Число за", span, "(", IntToStr(count), ")"}, " "), count_years_total)
-	pie_types_total := PieChart(strings.Join([]string{"Отношение за", span}, " "), SwitchKeys(types_count_total, types_names))
-	bar_count_span_total := BarChartNestedValues(strings.Join([]string{"Распределение за", span}, " "), years, SwitchKeys(count_total, months_names))
-	bar_types_span_total := BarChartNestedValues(strings.Join([]string{"Распределение за", span}, " "), years, SwitchKeys(types_total, types_names))
+	types_count_total, points_types_count_total := SingleFilterPass(frame, types, "type")
+	types_total, points_types_total := DoubleFilterPass(frame, types, years, "type", "year")
+	types_years, points_types_years := DoubleFilterPass(frame, years, types, "year", "type")
 
-	charts_total := om.NewOrderedMap[string, template.HTML]()
-	charts_total.Set("map_total", ToSnippet(map_total))
-	charts_total.Set("bar_count_total", ToSnippet(bar_count_total))
-	charts_total.Set("pie_types_total", ToSnippet(pie_types_total))
-	charts_total.Set("bar_count_span_total", ToSnippet(bar_count_span_total))
-	charts_total.Set("bar_types_span_total", ToSnippet(bar_types_span_total))
+	charts_count_total := *om.NewOrderedMap[string, template.HTML]()
+	charts_count_total.Set(chartnames["map"], GeoChart("", points_count_years_total))
+	charts_count_total.Set(chartnames["bar_count"], BarChart(chartnames["bar_count_title"], count_years_total))
+	charts_count_total.Set(chartnames["bar_span"], BarChartSeveral("", years, SwitchKeys(count_total, months_names)))
 
-	return *charts_total
+	charts_types_total := *om.NewOrderedMap[string, template.HTML]()
+	charts_types_total.Set(chartnames["map"], GeoChart("", SwitchKeys(points_types_count_total, types_names)))
+	charts_types_total.Set(chartnames["pie_percentage"], PieChart("", SwitchKeys(types_count_total, types_names)))
+	charts_types_total.Set(chartnames["bar_span"], BarChartSeveral("", years, SwitchKeys(types_total, types_names)))
+
+	maps_count := GeoChartNested(points_count_total, months_names)
+	maps_types := GeoChartNested(points_types_total, types_names)
+
+	primary := []Block{
+		{Id: "charts_count_total", Header: "Количество", Snippets: charts_count_total},
+		{Id: "maps_count", Snippets: maps_count},
+		{Id: "charts_types_total", Header: "Типы", Snippets: charts_types_total},
+		{Id: "maps_types", Snippets: maps_types},
+	}
+
+	secondary := make([]Block, len(years))
+	for id, key := range count_years.Keys() {
+		charts_year := *om.NewOrderedMap[string, template.HTML]()
+
+		mapcount, _ := points_count_years.Get(key)
+		charts_year.Set(chartnames["map_year_count"], GeoChart("", SwitchKeys(mapcount, months_names)))
+
+		barvalues, _ := count_years.Get(key)
+		charts_year.Set(chartnames["bar_year_count"], BarChart("", SwitchKeys(barvalues, months_names)))
+
+		maptypes, _ := points_types_years.Get(key)
+		charts_year.Set(chartnames["map_year_types"], GeoChart("", SwitchKeys(maptypes, types_names)))
+
+		pievalues, _ := types_years.Get(key)
+		charts_year.Set(chartnames["pie_year_percentage"], PieChart("", SwitchKeys(pievalues, types_names)))
+
+		secondary[id] = Block{
+			Id:       key,
+			Header:   key,
+			Snippets: charts_year,
+		}
+	}
+
+	page := Page{
+		OldMap:          UseOldMap,
+		Header:          strings.Join([]string{"FSP | ", GetFileNameFromPath(path)}, ""),
+		ChartsPrimary:   primary,
+		ChartsSecondary: secondary,
+	}
+
+	return page
 }

@@ -1,18 +1,60 @@
-{{ define "document" }}
+{{ define "pagemain" }}
 <!DOCTYPE html>
 
 <html lang = 'ru'>
 
-{{ template "head" . }}
+<head>
+    <meta charset = 'UTF-8'>
+    <meta name = 'viewport' content = 'width = device-width, initial-scale = 1.0'>
 
-{{ template "body" . }}
+    <link rel = 'stylesheet' href = '/assets/styles/modern-normalize.min.css'>
+    <link rel = 'stylesheet' href = '/assets/styles/style.css'>
 
-{{ .Comment }}
+    <script src = '/assets/scripts/utils.js'></script>
+
+    <title>FSP | Главная</title>
+</head>
+
+<body>
+    {{ template "header" }}
+
+    <main>
+        <div class = 'image-block top-image'>
+            <h1><span>Лесные пожары в России</span></h1>
+        </div>
+
+        <div class = 'block-header'><h2>Информация о проекте</h2></div>
+
+        <div class = 'block'>
+            <div class = 'block-text'>
+                <p>Lorem, ipsum dolor sit amet consectetur adipisicing elit. Commodi earum numquam reprehenderit. Iste labore aut cumque quo. Eaque suscipit sint ducimus placeat natus, nam asperiores ipsum, aut eos eius earum illum aliquid enim hic error exercitationem perspiciatis quae magnam a assumenda neque perferendis doloribus aperiam. Suscipit quam minus voluptatibus, tenetur, quod mollitia est distinctio porro blanditiis reiciendis atque aspernatur placeat?</p>
+                <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quibusdam veniam fuga animi quos possimus est consequuntur dicta esse officiis, ipsum dolorum natus vel repudiandae perspiciatis aspernatur ab magni minus aliquam quidem quod a inventore? Voluptatibus officiis quidem impedit facilis minima rem nobis dolore a at nihil architecto sit repellat voluptas recusandae molestias ipsum incidunt earum libero hic nemo, magnam deleniti.</p>
+            </div>
+        </div>
+
+        {{ if . }}
+        <div class = 'block-header'><h2>Перейти к отчёту</h2></div>
+        <div class = 'block'>
+            <div class = 'block-links'>
+            {{ range $name, $link := . }}
+            <h1><a class = 'link' target = '_blank' href = '{{ $link }}'>{{ $name }}</a></h1>
+            {{ end }}
+            </div>
+        </div>
+        {{ end }}
+    </main>
+
+    {{ template "footer" }}
+</body>
 
 </html>
 {{ end }}
 
-{{ define "head" }}
+{{ define "pagereport" }}
+<!DOCTYPE html>
+
+<html lang = 'ru'>
+
 <head>
     <meta charset = 'UTF-8'>
     <meta name = 'viewport' content = 'width = device-width, initial-scale = 1.0'>
@@ -21,54 +63,64 @@
     <link rel = 'stylesheet' href = '/assets/styles/style.css'>
 
     <script src = '/assets/scripts/echarts.min.js'></script>
-    <script src = '/assets/scripts/mapdata.min.js'></script>
+    <script src = '/assets/scripts/mapdata{{ if .OldMap }}.old{{ end }}.min.js'></script>
     <script src = '/assets/scripts/map.min.js'></script>
     <script src = '/assets/scripts/utils.js'></script>
 
     <title>{{ .Header }}</title>
 </head>
-{{ end }}
 
-{{ define "body" }}
 <body>
-    <header>
-        <img src = '/assets/images/logo.png' alt = 'Логотип' class = 'logo'>
-        <h1>Fire Statistics Project</h1>
-    </header>
+    {{ template "header" }}
 
     <main>
+        {{ if .ChartsPrimary }}
         <div class = 'image-block top-image'>
-            <h1><span>Лесные пожары в России</span></h1>
+            <h1><span>Общие данные</span></h1>
         </div>
-
-        {{ if .Blocks }} {{ $blocks := .Blocks }}
-            {{ range $id1, $key := (getkeysBlock $blocks) }} {{ $block := (getbykeyBlock $blocks $key) }}
-                {{ if and $block (getkeysHTML $block.Snippets) }}
-                    {{ if $block.Header }}<div class = 'block-header'><h2>{{ $block.Header }}</h2></div>{{ end }}
-                    <div class = 'block' id = '{{ $key }}'>
-                        {{ range $id2, $key2 := (getkeysHTML $block.Snippets) }}
-                            {{ getbykeyHTML $block.Snippets $key2 }}
-                        {{ end }}
-                    </div>
+            {{ range $tabs := .ChartsPrimary }}
+                {{ if $tabs }}
+                    {{ template "tabs" $tabs }}
                 {{ end }}
             {{ end }}
         {{ end }}
 
-        <div class = 'image-block middle-image'></div>
-
-        {{ if .Tabs }}
-            {{ template "tabs" .Tabs }}
+        {{ if .ChartsSecondary }}
+        <div class = 'image-block middle-image'>
+            <h1><span>Уточнение данных</span></h1>
+        </div>
+            {{ range $tabs := .ChartsSecondary }}
+                {{ if $tabs }}
+                    {{ template "tabs" $tabs }}
+                {{ end }}
+            {{ end }}
         {{ end }}
     </main>
 
-    <footer>
-        <h3><a class = 'link' href = ''>Sources</a></h3>
-    </footer>
+    {{ template "footer" }}
 </body>
+
+{{ safe "<!-- Welcome to the cursed world we created by ourselves -->" }}
+
+</html>
+{{ end }}
+
+{{ define "header" }}
+<header>
+    <img src = '/assets/images/manul.png' alt = 'Манул' class = 'logo'>
+    <h1>Fire Statistics Project</h1>
+</header>
+{{ end }}
+
+{{ define "footer" }}
+<footer>
+    <h3><a class = 'link' target = '_blank' href = 'https://tinyurl.com/y56j4nzr'>Sources</a></h3>
+</footer>
 {{ end }}
 
 {{ define "tabs" }} {{ $snippets := .Snippets }}
 {{ if (getkeysHTML $snippets) }}
+{{ if .Header }}<div class = 'block-header'><h2>{{ .Header }}</h2></div>{{ end }}
 <div class = 'tabs-block' id = '{{ .Id }}'>
     {{ $c1 := 0 }} {{ $c2 := 0 }}
     <ul class = 'tabs'>

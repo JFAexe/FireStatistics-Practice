@@ -24,10 +24,7 @@ type (
 	}
 )
 
-const (
-	DotRad      float64 = 4
-	DotDia      float32 = float32(DotRad * 18)
-	HTMLSnippet string  = `
+const HTMLSnippet string = `
 <div class = 'charts-container'>
     <div class = 'item' id = '{{ .ChartID }}' style = 'width:{{ .Initialization.Width }}; height:{{ .Initialization.Height }};'></div>
 </div>
@@ -40,13 +37,11 @@ const (
     {{- end }}
 </script>
 `
+
+var (
+	PointRad float64
+	PointDia float32
 )
-
-var SnippetTemplate *template.Template
-
-func NewSnippetRenderer(c interface{}, before ...func()) Renderer {
-	return &SnippetRenderer{c: c, before: before}
-}
 
 func (r *SnippetRenderer) Render(w io.Writer) error {
 	for _, fn := range r.before {
@@ -82,21 +77,33 @@ func ToSnippet(r Renderer) template.HTML {
 	return template.HTML(buf.String())
 }
 
-func WithRenderer(opt Renderer) ch.GlobalOpts {
-	return func(bc *ch.BaseConfiguration) { bc.Renderer = opt }
+func WithSnippetRenderer(chart interface{ Validate() }) ch.GlobalOpts {
+	return func(bc *ch.BaseConfiguration) {
+		bc.Renderer = &SnippetRenderer{c: chart, before: []func(){chart.Validate}}
+	}
 }
 
 func WithScatterSize(opt float32) ch.SeriesOpts {
 	return func(s *ch.SingleSeries) { s.SymbolSize = opt }
 }
 
-func DefaultOptions(title string, chart interface{ Validate() }) []ch.GlobalOpts {
+func GetChartOptions(title string, chart interface{ Validate() }) []ch.GlobalOpts {
 	return []ch.GlobalOpts{
 		ch.WithTitleOpts(op.Title{Title: title, Left: "center", TitleStyle: &op.TextStyle{FontFamily: "'Exo 2', sans-serif"}}),
 		ch.WithInitializationOpts(op.Initialization{Width: "1080px", Height: "400px"}),
 		ch.WithTooltipOpts(op.Tooltip{Show: true}),
 		ch.WithLegendOpts(op.Legend{Show: true, Bottom: "bottom", Left: "center"}),
-		WithRenderer(NewSnippetRenderer(chart, chart.Validate)),
+		ch.WithToolboxOpts(op.Toolbox{
+			Show:   true,
+			Right:  "5%",
+			Top:    "center",
+			Orient: "vertical",
+			Feature: &op.ToolBoxFeature{
+				SaveAsImage: &op.ToolBoxFeatureSaveAsImage{Show: true, Type: "png", Title: "График"},
+				DataView:    &op.ToolBoxFeatureDataView{Show: true, Title: "Данные", Lang: []string{"Исходные данные", "Закрыть", "Обновить"}},
+			}},
+		),
+		WithSnippetRenderer(chart),
 	}
 }
 
@@ -113,10 +120,10 @@ func ConverDataBar(data om.OrderedMap[string, int]) ([]op.BarData, []string) {
 	return ret, axs
 }
 
-func BarChart(title string, values om.OrderedMap[string, int]) *ch.Bar {
+func BarChart(title string, values om.OrderedMap[string, int]) template.HTML {
 	chart := ch.NewBar()
 
-	chart.SetGlobalOptions(DefaultOptions(title, chart)...)
+	chart.SetGlobalOptions(GetChartOptions(title, chart)...)
 
 	series, axis := ConverDataBar(values)
 
@@ -124,13 +131,13 @@ func BarChart(title string, values om.OrderedMap[string, int]) *ch.Bar {
 
 	chart.SetXAxis(axis).SetSeriesOptions(ch.WithLabelOpts(op.Label{Show: true, Position: "top"}))
 
-	return chart
+	return ToSnippet(chart)
 }
 
-func BarChartNestedValues(title string, axis []string, values om.OrderedMap[string, om.OrderedMap[string, int]]) *ch.Bar {
+func BarChartSeveral(title string, axis []string, values om.OrderedMap[string, om.OrderedMap[string, int]]) template.HTML {
 	chart := ch.NewBar()
 
-	chart.SetGlobalOptions(DefaultOptions(title, chart)...)
+	chart.SetGlobalOptions(GetChartOptions(title, chart)...)
 
 	for _, key := range values.Keys() {
 		data, _ := values.Get(key)
@@ -140,7 +147,7 @@ func BarChartNestedValues(title string, axis []string, values om.OrderedMap[stri
 
 	chart.SetXAxis(axis)
 
-	return chart
+	return ToSnippet(chart)
 }
 
 func ConverDataPie(data om.OrderedMap[string, int]) []op.PieData {
@@ -154,16 +161,16 @@ func ConverDataPie(data om.OrderedMap[string, int]) []op.PieData {
 	return ret
 }
 
-func PieChart(title string, values om.OrderedMap[string, int]) *ch.Pie {
+func PieChart(title string, values om.OrderedMap[string, int]) template.HTML {
 	chart := ch.NewPie()
 
-	chart.SetGlobalOptions(DefaultOptions(title, chart)...)
+	chart.SetGlobalOptions(GetChartOptions(title, chart)...)
 
 	chart.AddSeries("", ConverDataPie(values))
 
 	chart.SetSeriesOptions(ch.WithPieChartOpts(op.PieChart{Radius: []string{"25%", "55%"}}))
 
-	return chart
+	return ToSnippet(chart)
 }
 
 func ConverDataGeo(data Points, tip string) ([]op.GeoData, float32, float32) {
@@ -171,7 +178,7 @@ func ConverDataGeo(data Points, tip string) ([]op.GeoData, float32, float32) {
 
 	min, max := 1, 1
 
-	for point, count := range FilterPoints(DotRad, data) {
+	for point, count := range FilterPoints(PointRad, data) {
 		if count < min {
 			min = count
 		}
@@ -186,7 +193,7 @@ func ConverDataGeo(data Points, tip string) ([]op.GeoData, float32, float32) {
 	return ret, float32(min), float32(max)
 }
 
-func GeoChart(title string, data om.OrderedMap[string, Points]) *ch.Geo {
+func GeoChart(title string, data om.OrderedMap[string, Points]) template.HTML {
 	chart := ch.NewGeo()
 
 	var cmin, cmax float32 = 1, 1
@@ -203,15 +210,26 @@ func GeoChart(title string, data om.OrderedMap[string, Points]) *ch.Geo {
 			cmax = max
 		}
 
-		chart.AddSeries(key, tp.ChartScatter, series, WithScatterSize(DotDia))
+		chart.AddSeries(key, tp.ChartScatter, series, WithScatterSize(PointDia))
 	}
 
 	chart.SetGlobalOptions(append(
-		DefaultOptions(title, chart),
+		GetChartOptions(title, chart),
 		ch.WithGeoComponentOpts(op.GeoComponent{Map: "Russia"}),
-		ch.WithLegendOpts(op.Legend{Show: true, Bottom: "bottom", Left: "center"}),
 		ch.WithVisualMapOpts(op.VisualMap{Calculable: true, Min: cmin, Max: cmax}),
 	)...)
 
-	return chart
+	return ToSnippet(chart)
+}
+
+func GeoChartNested(m om.OrderedMap[string, om.OrderedMap[string, Points]], k om.OrderedMap[string, string]) om.OrderedMap[string, template.HTML] {
+	ret := om.NewOrderedMap[string, template.HTML]()
+
+	m = SwitchKeys(m, k)
+	for _, key := range m.Keys() {
+		value, _ := m.Get(key)
+		ret.Set(key, GeoChart("", value))
+	}
+
+	return *ret
 }
