@@ -50,7 +50,6 @@ func PrepareDataFrame(frame df.DataFrame) df.DataFrame {
 		Rename("name", "type_name").
 		Mutate(sr.New(Map(dt, DateYear), sr.Int, "year")).
 		Mutate(sr.New(Map(dt, DateMonth), sr.Int, "month")).
-		Mutate(sr.New(Map(dt, DateDay), sr.Int, "day")).
 		Drop("dt").
 		Arrange(df.Sort("year"))
 }
@@ -99,18 +98,18 @@ func SingleFilterPass(frame df.DataFrame, r []string, c string) (om.OrderedMap[s
 	return *data, *points
 }
 
-func DoubleFilterPass(frame df.DataFrame, r1, r2 []string, c1, c2 string) (om.OrderedMap[string, om.OrderedMap[string, int]], []om.OrderedMap[string, Points]) {
+func DoubleFilterPass(frame df.DataFrame, r1, r2 []string, c1, c2 string) (om.OrderedMap[string, om.OrderedMap[string, int]], om.OrderedMap[string, om.OrderedMap[string, Points]]) {
 	data := om.NewOrderedMap[string, om.OrderedMap[string, int]]()
-	points := make([]om.OrderedMap[string, Points], 0)
+	points := om.NewOrderedMap[string, om.OrderedMap[string, Points]]()
 
 	for id, v1 := range r1 {
 		d, p := SingleFilterPass(frame.Filter(FilterEq(c1, v1)), r2, c2)
 
 		data.Set(r1[id], d)
-		points = append(points, p)
+		points.Set(r1[id], p)
 	}
 
-	return *data, points
+	return *data, *points
 }
 
 func ProcessData(path string) {
@@ -139,7 +138,7 @@ func ProcessData(path string) {
 	count_years, _ := DoubleFilterPass(frame, years, months, "year", "month")
 
 	types_count_total, _ := SingleFilterPass(frame, types, "type")
-	types_total, _ := DoubleFilterPass(frame, types, years, "type", "year")
+	types_total, points2 := DoubleFilterPass(frame, types, years, "type", "year")
 	types_years, _ := DoubleFilterPass(frame, years, types, "year", "type")
 
 	out := MakePage(
@@ -153,7 +152,11 @@ func ProcessData(path string) {
 		out.AddCharts(BarChart(strings.Join([]string{"Число за", el.Key}, " "), SwitchKeys(el.Value, months_names)))
 	}
 	for el := types_years.Front(); el != nil; el = el.Next() {
-		out.AddCharts(PieChart(strings.Join([]string{"Число за", el.Key}, " "), SwitchKeys(el.Value, types_names)))
+		out.AddCharts(PieChart(strings.Join([]string{"Отношение за", el.Key}, " "), SwitchKeys(el.Value, types_names)))
+	}
+	points2 = SwitchKeys(points2, types_names)
+	for el := points2.Front(); el != nil; el = el.Next() {
+		out.AddCharts(GeoChart(el.Key, el.Value))
 	}
 	RenderPage(out, GetFileNameFromPath(path), "page.html")
 }

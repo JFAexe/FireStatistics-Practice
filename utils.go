@@ -81,6 +81,7 @@ func RemoveDuplicateValues[T comparable](s []T) []T {
 	for _, entry := range s {
 		if _, value := keys[entry]; !value {
 			keys[entry] = true
+
 			list = append(list, entry)
 		}
 	}
@@ -91,14 +92,19 @@ func RemoveDuplicateValues[T comparable](s []T) []T {
 func SwitchKeys[T any](m om.OrderedMap[string, T], k om.OrderedMap[string, string]) om.OrderedMap[string, T] {
 	for _, oldkey := range m.Keys() {
 		var newkey string
+
 		for _, t := range k.Keys() {
 			if t != oldkey {
 				continue
 			}
+
 			newkey, _ = k.Get(t)
+
 			break
 		}
+
 		value, _ := m.Get(oldkey)
+
 		m.Delete(oldkey)
 		m.Set(newkey, value)
 	}
@@ -142,8 +148,6 @@ func FilterPoints(r float64, p Points) map[Point]int {
 		ret[point]++
 	}
 
-	InfoLogger.Println("Optimized points", len(p)-len(ret), "out of", len(p))
-
 	return ret
 }
 
@@ -162,10 +166,6 @@ func DateYear(in []string) int {
 
 func DateMonth(in []string) int {
 	return int(ParseDate(in).Month())
-}
-
-func DateDay(in []string) int {
-	return ParseDate(in).Day()
 }
 
 func IntToStr(in int) string {
