@@ -1,2 +1,8 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+*      text=auto
+*.go   text
+*.html text
+*.scss text
+*.css  text
+*.js   text
+*.csv  text
+*.png  binary
