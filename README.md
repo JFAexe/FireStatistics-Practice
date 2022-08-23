@@ -1,6 +1,6 @@
 # Fire Statistics Project
 
-Проект разработанный во время практики, проходящей в университете, на языке `Go` с использованием библиотек [`gota`](https://github.com/go-gota/gota), [`orederedmap`](https://github.com/elliotchance/orderedmap) и [`go-echarts`](https://github.com/go-echarts/go-echarts)
+Проект разработанный во время практики, проходящей в университете, на языке `Go` с использованием библиотек [`gota`](https://github.com/go-gota/gota), [`orderedmap`](https://github.com/elliotchance/orderedmap) и [`go-echarts`](https://github.com/go-echarts/go-echarts)
 
 <img src='assets/images/meme.png' width='256px'>
 
@@ -9,7 +9,7 @@
 
 - Обработка `csv` данных в формате `dt|type_name|type_id|lon|lat`
 - Отображение статистики в виде `html` страницы при помощи http сервера
-- Отображение данных при помощи карт, столбчатых и круговых диаграмм
+- Отображение данных в виде карт, столбчатых и круговых диаграмм
 
 
 ## Использование
@@ -45,7 +45,7 @@ go build -ldflags "-s -w"
 
 - [Данные для устаревшей карты](https://github.com/echarts-maps/echarts-countries-js)
 - [Данные для подробной карты](https://github.com/timurkanaz/Russia_geojson_OSM)
-- [Программа обработки geojson](https://github.com/echarts-maps/echarts-mapmaker)
+- [Программа обработки `geojson`](https://github.com/echarts-maps/echarts-mapmaker)
 - [Инструкция по работе с картами `echarts`](https://echarts-maps.github.io/echarts-geomapping-book-en/)
 - [`JS` рантайм диаграмм](https://github.com/go-echarts/go-echarts-assets)
 
