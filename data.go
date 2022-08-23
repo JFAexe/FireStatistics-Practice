@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"sort"
+	"strings"
 
 	df "github.com/go-gota/gota/dataframe"
 	sr "github.com/go-gota/gota/series"
@@ -54,22 +55,22 @@ func FilterEq(n, v string) df.F {
 	return df.F{Colname: n, Comparator: sr.Eq, Comparando: v}
 }
 
-func CountFilteredData(f df.DataFrame, r []string, c string) []float64 {
-	data := []float64{}
+func CountFilteredData(f df.DataFrame, r []string, c string) []any {
+	data := []any{}
 	for _, v := range r {
-		data = append(data, float64(f.Filter(FilterEq(c, v)).Nrow()))
+		data = append(data, f.Filter(FilterEq(c, v)).Nrow())
 	}
 
 	return data
 }
 
-func DoubleFilteredData(f df.DataFrame, r1, r2 []string, c1, c2 string) [][]float64 {
-	data := [][]float64{}
+func DoubleFilteredData(f df.DataFrame, r1, r2 []string, c1, c2 string) [][]any {
+	data := [][]any{}
 	for _, v1 := range r1 {
 		tf := f.Filter(FilterEq(c1, v1))
-		td := []float64{}
+		td := []any{}
 		for _, v2 := range r2 {
-			td = append(td, float64(tf.Filter(FilterEq(c2, v2)).Nrow()))
+			td = append(td, tf.Filter(FilterEq(c2, v2)).Nrow())
 		}
 		data = append(data, td)
 	}
@@ -93,13 +94,13 @@ func ProcessData(path string) {
 	years := GetUniqueRecords(frame, "year")
 
 	months := GetMonthData(frame)
-	months_names := []string{}
+	months_names := make([]string, 0)
 	for _, m := range months {
 		months_names = append(months_names, humanmonths[ParseNumber(m)-1])
 	}
 
 	types := GetUniqueRecords(frame, "type")
-	types_names := []string{}
+	types_names := make([]string, 0)
 	for _, t := range types {
 		types_names = append(types_names, frame.Filter(FilterEq("type", t)).Col("name").Records()[0])
 	}
@@ -108,27 +109,31 @@ func ProcessData(path string) {
 	InfoLogger.Println(months, months_names)
 	InfoLogger.Println(types, types_names)
 
-	title := []string{"Распределение за ", years[0], "-", years[len(years)-1]}
+	title := strings.Join([]string{"Распределение за ", years[0], "-", years[len(years)-1]}, "")
 
 	count_years_total := CountFilteredData(frame, years, "year")
 	count_total := DoubleFilteredData(frame, months, years, "month", "year")
 	count_years := DoubleFilteredData(frame, years, months, "year", "month")
 
-	GenerateBarChart(path, []string{"count_total_years.svg"}, [][]float64{count_years_total}, years, nil, []string{"Количество в год"}, minwidth)
-	GenerateBarChart(path, []string{"count_total_span.svg"}, count_total, years, months_names, title, maxwidth)
+	out_count := MakePage(
+		BarChart("count_total_years", years, count_years_total),
+		BarChartNestedValues(title, years, months_names, count_total),
+	)
 	for i, y := range count_years {
-		GenerateBarChart(path, []string{"count_", years[i], ".svg"}, [][]float64{y}, months_names, nil, []string{years[i]}, minwidth)
+		out_count.AddCharts(BarChart(strings.Join([]string{"count_", years[i]}, ""), months_names, y))
 	}
+	RenderPage(out_count, GetFileNameFromPath(path), "count.html")
 
 	types_count_total := CountFilteredData(frame, types, "type")
 	types_total := DoubleFilteredData(frame, types, years, "type", "year")
 	types_years := DoubleFilteredData(frame, years, types, "year", "type")
 
-	GeneratePieChart(path, []string{"types_total_percentage.svg"}, types_count_total, types_names, minwidth)
-	GenerateBarChart(path, []string{"types_total_span.svg"}, types_total, years, types_names, title, defwidth)
+	out_types := MakePage(
+		PieChart("types_total_percentage", types_names, types_count_total),
+		BarChartNestedValues(title, years, types_names, types_total),
+	)
 	for i, y := range types_years {
-		GeneratePieChart(path, []string{"types_", years[i], ".svg"}, y, types_names, minwidth)
+		out_types.AddCharts(PieChart(strings.Join([]string{"types_", years[i]}, ""), types_names, y))
 	}
-
-	GenerateBar(PrepareDataForCharts(count_years_total), years)
+	RenderPage(out_types, GetFileNameFromPath(path), "type.html")
 }

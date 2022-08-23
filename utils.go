@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -42,20 +41,6 @@ func IsValidFile(path string) (bool, error) {
 	}
 
 	return false, err
-}
-
-func WriteFileFromBytes(path, name string, buf []byte) error {
-	if err := os.MkdirAll(path, 0700); err != nil {
-		return err
-	}
-
-	if err := ioutil.WriteFile(filepath.Join(path, name), buf, 0600); err != nil {
-		return err
-	}
-
-	InfoLogger.Printf("Saved file \"%v\" at %v", name, path)
-
-	return nil
 }
 
 func OpenUrlInBrowser(url string) error {
