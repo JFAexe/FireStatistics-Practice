@@ -1,12 +1,15 @@
-# Проект для вузовской практики
+# Fire Statistics Project
 
-Разработан на языке `Go`, с использованием библиотек [gota](https://github.com/go-gota/gota), [orederedmap](https://github.com/elliotchance/orderedmap) и [go-echarts](https://github.com/go-echarts/go-echarts)
+Проект разработанный во время практики, проходящей в университете, на языке `Go` с использованием библиотек [gota](https://github.com/go-gota/gota), [orederedmap](https://github.com/elliotchance/orderedmap) и [go-echarts](https://github.com/go-echarts/go-echarts)
 
-- Обработка данных в формате `.csv`
-- Отображение статистики в виде `html` страницы при помощи http сервера
-- Столбчатые и круговые диаграммы, карты
 
-<img src='assets/images/meme.png' style='max-width:256px'>
+## Возможности
+
+- Обработка `csv` данных в формате `dt|type_name|type_id|lon|lat`
+- Отображение статистики в виде `html` страницы при помощи `http` сервера
+- Отображение данных при помощи карт, столбчатых и круговых диаграмм
+
+<img src='assets/images/meme.png' width='256px'>
 
 
 ## Использование
