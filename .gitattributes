@@ -6,3 +6,5 @@
 *.js   text
 *.csv  text
 *.png  binary
+
+*.min.js linguist-vendored
