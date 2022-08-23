@@ -3,17 +3,16 @@ package main
 import (
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 
+	om "github.com/elliotchance/orderedmap/v2"
 	df "github.com/go-gota/gota/dataframe"
 	sr "github.com/go-gota/gota/series"
 )
 
 type (
-	Point     struct{ x, y float64 }
-	Points    []Point
-	PointsMap map[string]Points
+	Point  struct{ x, y float64 }
+	Points []Point
 )
 
 var (
@@ -70,7 +69,7 @@ func GetUniqueInts(frame df.DataFrame, name string) []string {
 
 	sort.Ints(ret)
 
-	return Map(ret, func(in int) string { return strconv.Itoa(in) })
+	return Map(ret, IntToStr)
 }
 
 func GetPoints(frame df.DataFrame) Points {
@@ -86,32 +85,32 @@ func GetPoints(frame df.DataFrame) Points {
 	return ret
 }
 
-func SingleFilterPass(frame df.DataFrame, r []string, c string) ([]int, PointsMap) {
-	data := make([]int, 0)
-	points := make(PointsMap, 0)
+func SingleFilterPass(frame df.DataFrame, r []string, c string) (om.OrderedMap[string, int], om.OrderedMap[string, Points]) {
+	data := om.NewOrderedMap[string, int]()
+	points := om.NewOrderedMap[string, Points]()
 
 	for id, v := range r {
 		f := frame.Filter(FilterEq(c, v))
 
-		data = append(data, f.Nrow())
-		points[r[id]] = GetPoints(f)
+		data.Set(r[id], f.Nrow())
+		points.Set(r[id], GetPoints(f))
 	}
 
-	return data, points
+	return *data, *points
 }
 
-func DoubleFilterPass(frame df.DataFrame, r1, r2 []string, c1, c2 string) ([][]int, []PointsMap) {
-	data := make([][]int, 0)
-	points := make([]PointsMap, 0)
+func DoubleFilterPass(frame df.DataFrame, r1, r2 []string, c1, c2 string) (om.OrderedMap[string, om.OrderedMap[string, int]], []om.OrderedMap[string, Points]) {
+	data := om.NewOrderedMap[string, om.OrderedMap[string, int]]()
+	points := make([]om.OrderedMap[string, Points], 0)
 
-	for _, v1 := range r1 {
+	for id, v1 := range r1 {
 		d, p := SingleFilterPass(frame.Filter(FilterEq(c1, v1)), r2, c2)
 
-		data = append(data, d)
+		data.Set(r1[id], d)
 		points = append(points, p)
 	}
 
-	return data, points
+	return *data, points
 }
 
 func ProcessData(path string) {
@@ -124,20 +123,16 @@ func ProcessData(path string) {
 	span := strings.Join([]string{years[0], "-", years[len(years)-1]}, "")
 
 	months := GetUniqueInts(frame, "month")
-	months_names := make([]string, 0)
+	months_names := *om.NewOrderedMap[string, string]()
 	for _, m := range months {
-		months_names = append(months_names, humanmonths[m])
+		months_names.Set(m, humanmonths[m])
 	}
 
 	types := GetUniqueInts(frame, "type")
-	types_names := make([]string, 0)
+	types_names := *om.NewOrderedMap[string, string]()
 	for _, t := range types {
-		types_names = append(types_names, frame.Filter(FilterEq("type", t)).Col("name").Records()[0])
+		types_names.Set(t, frame.Filter(FilterEq("type", t)).Col("name").Records()[0])
 	}
-
-	InfoLogger.Println(years, "Всего:", count)
-	InfoLogger.Println(months, months_names)
-	InfoLogger.Println(types, types_names)
 
 	count_years_total, points1 := SingleFilterPass(frame, years, "year")
 	count_total, _ := DoubleFilterPass(frame, months, years, "month", "year")
@@ -148,18 +143,17 @@ func ProcessData(path string) {
 	types_years, _ := DoubleFilterPass(frame, years, types, "year", "type")
 
 	out := MakePage(
-		GeoChart([]PointsMap{points1}),
-		BarChart(strings.Join([]string{"Число за", span, "(", strconv.Itoa(count), ")"}, " "), years, count_years_total),
-		PieChart(strings.Join([]string{"Отношение за", span}, " "), types_names, types_count_total),
-		BarChartNestedValues(strings.Join([]string{"Распределение за", span}, " "), years, months_names, count_total),
-		BarChartNestedValues(strings.Join([]string{"Распределение за", span}, " "), years, types_names, types_total),
+		GeoChart("all", points1),
+		BarChart(strings.Join([]string{"Число за", span, "(", IntToStr(count), ")"}, " "), count_years_total),
+		PieChart(strings.Join([]string{"Отношение за", span}, " "), SwitchKeys(types_count_total, types_names)),
+		BarChartNestedValues(strings.Join([]string{"Распределение за", span}, " "), years, SwitchKeys(count_total, months_names)),
+		BarChartNestedValues(strings.Join([]string{"Распределение за", span}, " "), years, SwitchKeys(types_total, types_names)),
 	)
-	for i := 0; i < len(count_years); i++ {
-		out.AddCharts(
-			BarChart(strings.Join([]string{"Число за", years[i]}, " "), months_names, count_years[i]),
-			PieChart(strings.Join([]string{"Отношение за", years[i]}, " "), types_names, types_years[i]),
-		)
+	for el := count_years.Front(); el != nil; el = el.Next() {
+		out.AddCharts(BarChart(strings.Join([]string{"Число за", el.Key}, " "), SwitchKeys(el.Value, months_names)))
 	}
-
+	for el := types_years.Front(); el != nil; el = el.Next() {
+		out.AddCharts(PieChart(strings.Join([]string{"Число за", el.Key}, " "), SwitchKeys(el.Value, types_names)))
+	}
 	RenderPage(out, GetFileNameFromPath(path), "page.html")
 }

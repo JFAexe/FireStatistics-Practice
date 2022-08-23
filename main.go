@@ -5,11 +5,18 @@ import (
 	"time"
 )
 
+const (
+	rad float64 = 4
+	dia float32 = float32(rad * 18)
+)
+
 func init() {
 	SetupLogger()
 }
 
 func main() {
+	startup := time.Now()
+
 	args := os.Args[1:]
 
 	if count := len(args); count < 1 {
@@ -19,8 +26,6 @@ func main() {
 	} else {
 		InfoLogger.Printf("Inputs count: %v", count)
 	}
-
-	s := time.Now()
 
 	for _, arg := range args {
 		exists, err := IsValidFile(arg)
@@ -41,5 +46,5 @@ func main() {
 		LogMemoryUsage()
 	}
 
-	InfoLogger.Println("Main", time.Since(s))
+	InfoLogger.Println("Main", time.Since(startup))
 }

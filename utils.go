@@ -7,8 +7,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
+
+	om "github.com/elliotchance/orderedmap/v2"
 )
 
 const (
@@ -85,36 +88,63 @@ func RemoveDuplicateValues[T comparable](s []T) []T {
 	return list
 }
 
-func Approx(t, a, b float64) bool {
-	return math.Abs(a-b) <= t
+func SwitchKeys[T any](m om.OrderedMap[string, T], k om.OrderedMap[string, string]) om.OrderedMap[string, T] {
+	for _, oldkey := range m.Keys() {
+		var newkey string
+		for _, t := range k.Keys() {
+			if t != oldkey {
+				continue
+			}
+			newkey, _ = k.Get(t)
+			break
+		}
+		value, _ := m.Get(oldkey)
+		m.Delete(oldkey)
+		m.Set(newkey, value)
+	}
+
+	return m
 }
 
-func PointInSlice(r float64, p Point, s Points) bool {
+func InRadius(p, c Point, r float64) bool {
+	x := math.Abs(c.x - p.x)
+	y := math.Abs(c.y-p.y) * 1.25
+
+	return x+y <= r
+}
+
+func SimilarInSlice(r float64, p Point, s Points) (Point, bool) {
 	for _, c := range s {
-		if Approx(r, p.x, c.x) && Approx(r, p.y, c.y) {
-			return true
+		if InRadius(p, c, r) {
+			return c, true
 		}
 	}
 
-	return false
+	return Point{}, false
 }
 
-func FilterPoints(r float64, p Points) Points {
+func FilterPoints(r float64, p Points) map[Point]int {
 	sort.Slice(p, func(i, j int) bool {
-		return (p[i].x > p[j].x) && (p[i].y > p[j].y)
+		return (p[i].x < p[j].x) && (p[i].y < p[j].y)
 	})
 
+	ret := make(map[Point]int, 0)
 	temp := make(Points, 0)
 
 	for _, point := range p {
-		if PointInSlice(r, point, temp) {
+		if p, in := SimilarInSlice(r, point, temp); in {
+			ret[p]++
+
 			continue
 		}
 
 		temp = append(temp, point)
+		ret[point]++
 	}
 
-	return temp
+	InfoLogger.Println("Optimized points", len(p)-len(ret), "out of", len(p))
+
+	return ret
 }
 
 func ParseDate(in []string) time.Time {
@@ -136,6 +166,10 @@ func DateMonth(in []string) int {
 
 func DateDay(in []string) int {
 	return ParseDate(in).Day()
+}
+
+func IntToStr(in int) string {
+	return strconv.Itoa(in)
 }
 
 func LogMemoryUsage() {
