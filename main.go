@@ -43,4 +43,6 @@ func main() {
 
 		ProcessData(path)
 	}
+
+	LogMemoryUsage()
 }
