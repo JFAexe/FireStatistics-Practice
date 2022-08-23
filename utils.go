@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,8 +12,24 @@ import (
 	"time"
 )
 
-const format string = "2006-01-02"
-const temppath string = "./temp"
+const (
+	temppath   string = "./fa-temp"
+	timeformat string = "2006-01-02"
+)
+
+var (
+	InfoLogger  *log.Logger
+	ErrorLogger *log.Logger
+)
+
+func SetupLogger() {
+	var logout *os.File
+
+	logout = os.Stdout
+
+	InfoLogger = log.New(logout, "[INFO] ", log.LstdFlags|log.Lmsgprefix)
+	ErrorLogger = log.New(logout, "[ERROR] ", log.LstdFlags|log.Lmsgprefix)
+}
 
 func IsValidFile(path string) (bool, error) {
 	info, err := os.Stat(path)
@@ -28,18 +44,14 @@ func IsValidFile(path string) (bool, error) {
 	return false, err
 }
 
-func WriteFileFromBytes(path, suffix string, buf []byte) error {
-	file := GetFileNameFromPath(path)
-
-	dir := strings.Join([]string{temppath, file}, "/")
+func WriteFileFromBytes(path, name string, buf []byte) error {
+	dir := strings.Join([]string{temppath, GetFileNameFromPath(path)}, "/")
 
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return err
 	}
 
-	out := filepath.Join(dir, strings.Join([]string{file, suffix}, ""))
-
-	if err := ioutil.WriteFile(out, buf, 0600); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(dir, name), buf, 0600); err != nil {
 		return err
 	}
 
@@ -84,9 +96,9 @@ func RemoveDuplicates(s []string) []string {
 
 	prev := 1
 
-	for curr := 1; curr < len(s); curr++ {
-		if s[curr-1] != s[curr] {
-			s[prev] = s[curr]
+	for cur := 1; cur < len(s); cur++ {
+		if s[cur-1] != s[cur] {
+			s[prev] = s[cur]
 			prev++
 		}
 	}
@@ -101,22 +113,20 @@ func GetFileNameFromPath(path string) string {
 }
 
 func ParseDate(i []string) time.Time {
-	date, err := time.Parse(format, strings.Join(i, ""))
+	date, err := time.Parse(timeformat, strings.Join(i, ""))
 	if err != nil {
-		panic(err)
+		ErrorLogger.Panicf("Can't parse date. Error: %v\n", err)
 	}
 
 	return date
 }
 
-func PrintMemoryUsage() {
+func LogMemoryUsage() {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	fmt.Printf("Alloc = %v MiB", bToMb(m.Alloc))
-	fmt.Printf("\tTotalAlloc = %v MiB", bToMb(m.TotalAlloc))
-	fmt.Printf("\tSys = %v MiB", bToMb(m.Sys))
-	fmt.Printf("\tNumGC = %v\n", m.NumGC)
+	InfoLogger.Printf("Alloc: %v MiB | TotalAlloc: %v MiB | Sys: %v MiB | NumGC: %v\n",
+		bToMb(m.Alloc), bToMb(m.TotalAlloc), bToMb(m.Sys), m.NumGC)
 }
 
 func bToMb(b uint64) uint64 {

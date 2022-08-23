@@ -1,36 +1,45 @@
 package main
 
 import (
-	"log"
 	"os"
 )
+
+func init() {
+	SetupLogger()
+}
 
 func main() {
 	args := os.Args[1:]
 
-	if len(args) < 1 {
-		log.Println("No files provided")
+	argscount := len(args)
+
+	if argscount < 1 {
+		InfoLogger.Println("No files provided")
 
 		return
 	}
 
-	for i := 0; i < len(args); i++ {
+	InfoLogger.Printf("Inputs count: %v", argscount)
+
+	for i := 0; i < argscount; i++ {
 		path := args[i]
 
 		exists, err := IsValidFile(path)
 		if err != nil {
-			log.Println(err)
+			ErrorLogger.Printf("Something is wrong with the file \"%v\". Error: %v\n", path, err)
 		}
 
 		if !exists {
-			log.Println(path, "isn't a file or doesn't exist")
+			InfoLogger.Printf("\"%v\" isn't a file or doesn't exist\n", path)
 
 			continue
 		}
 
 		file := GetFileNameFromPath(path)
 
-		log.Println("FILE:", file)
+		InfoLogger.Printf("Current file: %v\n", file)
+
+		MakeHttpHandle(file, path)
 
 		ProcessData(path)
 	}

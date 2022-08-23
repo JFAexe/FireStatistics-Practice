@@ -13,7 +13,7 @@ import (
 func ReadDataFile(path string) df.DataFrame {
 	file, err := os.Open(path)
 	if err != nil {
-		panic(err)
+		ErrorLogger.Panic(err)
 	}
 	defer file.Close()
 
@@ -40,7 +40,7 @@ func ProcessData(path string) {
 		arr = append(arr, float64(count))
 	}
 
-	PrintMemoryUsage()
+	LogMemoryUsage()
 
 	cd := ChartData{
 		title:  strings.Join([]string{"Количество пожаров за год. Общее число:", strconv.Itoa(basedf.Nrow())}, " "),
@@ -56,8 +56,8 @@ func ProcessData(path string) {
 		},
 	}
 
-	if err := WriteFileFromBytes(path, ".svg", MakeBarChart(cd)); err != nil {
-		panic(err)
+	if err := WriteFileFromBytes(path, "total.svg", MakeBarChart(cd)); err != nil {
+		ErrorLogger.Panic(err)
 	}
 }
 
@@ -81,12 +81,12 @@ func MakeBarChart(d ChartData) []byte {
 		ch.SVGTypeOption(),
 	)
 	if err != nil {
-		panic(err)
+		ErrorLogger.Panic(err)
 	}
 
 	data, err := render.Bytes()
 	if err != nil {
-		panic(err)
+		ErrorLogger.Panic(err)
 	}
 
 	return data
