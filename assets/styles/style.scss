@@ -1,23 +1,17 @@
-$font: local('Exo 2'), url() format('woff2');
-
 $gradient-background: linear-gradient(0deg, rgb(95, 90, 90) 0%, rgb(90, 50, 35) 100%);
-
-$color-main:       whitesmoke;
-$color-secondary:  rgba(245, 245, 245, 0.502);
-
-$shadow-secondary: 0 0 0.2rem $color-secondary;
-$shadow-text:      0.05rem 0.05rem 0.2rem #00000060;
-
-$border-radius: 0.2em 0.2em;
-
-$style-opacity: 0.9;
+$color-main:          whitesmoke;
+$color-secondary:     rgba(245, 245, 245, 0.502);
+$shadow-secondary:    0 0 0.2rem $color-secondary;
+$shadow-text:         0.05rem 0.05rem 0.2rem #00000060;
+$border-radius:       0.2em 0.2em;
+$style-opacity:       0.9;
 
 @mixin new-font-face($name, $url) {
-    font-family:   $name;
-    font-style:    normal;
-    font-weight:   400;
-    font-display:  swap;
-    src:           local($name), url($url) format('woff2');
+    font-family:  $name;
+    font-style:   normal;
+    font-weight:  400;
+    font-display: swap;
+    src:          local($name), url($url) format('woff2');
 }
 
 @mixin flex {
@@ -43,10 +37,10 @@ $style-opacity: 0.9;
 }
 
 body {
-    background:     $gradient-background;
-    font-family:      'Exo 2', sans-serif;
-    max-width:        1280px;
-    margin:           auto;
+    background:  $gradient-background;
+    font-family: 'Exo 2', sans-serif;
+    max-width:   1280px;
+    margin:      auto;
 
     text-decoration: none;
     line-height:     1.4;
@@ -104,14 +98,6 @@ footer {
 
     div {
         margin: 0.25em 4em;
-
-        p {
-            margin: 0.1em;
-        }
-
-        span {
-            margin: 0 1em;
-        }
     }
 
     div:first-of-type {
@@ -220,14 +206,14 @@ footer {
 }
 
 .image-block {
-    background-size:  cover;
-    padding:          10%;
-    text-align:       center;
-    opacity:          $style-opacity;
-    margin:           1.5em 0.5em;
-    border:           0.5em solid $color-main;
-    border-radius:    $border-radius;
-    box-shadow:       $shadow-secondary;
+    background-size: cover;
+    padding:         10%;
+    text-align:      center;
+    opacity:         $style-opacity;
+    margin:          1.5em 0.5em;
+    border:          0.5em solid $color-main;
+    border-radius:   $border-radius;
+    box-shadow:      $shadow-secondary;
 
     h1 {
         font-weight: normal;
@@ -270,11 +256,6 @@ footer {
     }
 }
 
-.subblock-flex {
-    @include flex;
-    padding: 1em;
-}
-
 .top-image {
     background-image: url('../images/topimage.png');
 }
@@ -283,14 +264,8 @@ footer {
     background-image: url('../images/middleimage.png');
 }
 
-.report-image {
-    max-width:  384px;
-    box-shadow: $shadow-text;
-    margin:     0 1em;
-}
-
 .charts-container {
+    @include flex;
     width:   fill;
     padding: 0 0 0.75em 0;
-    @include flex;
 }

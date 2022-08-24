@@ -69,4 +69,6 @@ go build -ldflags "-s -w"
 
 `JS` рантайм диаграмм использован под лицензией [APACHE 2.0](https://www.apache.org/licenses/LICENSE-2.0)
 
+`Modern Normalize` использован под лицензией [MIT](https://github.com/sindresorhus/modern-normalize/blob/main/license)
+
 Шрифт `Exo 2` использован под лицензией [OFL](https://scripts.sil.org/cms/scripts/page.php?site_id=nrsi&id=OFL)
